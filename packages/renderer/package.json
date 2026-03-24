@@ -1,0 +1,27 @@
+{
+  "name": "@openscope/renderer",
+  "version": "0.1.0",
+  "description": "Canvas 2D renderers for OpenScope video scope visualizations",
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@openscope/core": "workspace:*"
+  },
+  "license": "MIT"
+}

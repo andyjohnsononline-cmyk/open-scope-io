@@ -1,0 +1,40 @@
+{
+  "name": "openscope",
+  "version": "0.1.0",
+  "description": "Open source composable video scope engine \u2014 waveform, vectorscope, histogram, false color, and more",
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@openscope/core": "workspace:*",
+    "@openscope/shaders": "workspace:*",
+    "@openscope/renderer": "workspace:*"
+  },
+  "keywords": [
+    "video",
+    "scopes",
+    "waveform",
+    "vectorscope",
+    "histogram",
+    "false-color",
+    "color-grading",
+    "webgpu",
+    "video-analysis"
+  ],
+  "license": "MIT"
+}

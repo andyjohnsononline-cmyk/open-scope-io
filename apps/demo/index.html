@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>OpenScope Demo</title>
+  <link rel="stylesheet" href="/src/style.css" />
+</head>
+<body>
+  <header>
+    <h1>OpenScope</h1>
+    <p class="subtitle">Open Source Video Scope Engine</p>
+  </header>
+
+  <div class="controls">
+    <label class="file-input">
+      <input type="file" id="fileInput" accept="video/*,image/*" />
+      Load File
+    </label>
+    <button id="webcamBtn">Webcam</button>
+    <button id="pauseBtn" disabled>Pause</button>
+    <span id="status">No source loaded</span>
+  </div>
+
+  <div class="layout">
+    <div class="source-panel">
+      <div class="panel-label">Source</div>
+      <video id="video" muted playsinline></video>
+      <canvas id="imageCanvas" style="display:none"></canvas>
+    </div>
+
+    <div class="scope-panel" data-scope="waveform">
+      <div class="panel-label">Waveform</div>
+      <canvas id="canvas-waveform"></canvas>
+    </div>
+
+    <div class="scope-panel" data-scope="rgbParade">
+      <div class="panel-label">RGB Parade</div>
+      <canvas id="canvas-rgbParade"></canvas>
+    </div>
+
+    <div class="scope-panel" data-scope="vectorscope">
+      <div class="panel-label">Vectorscope</div>
+      <canvas id="canvas-vectorscope"></canvas>
+    </div>
+
+    <div class="scope-panel" data-scope="histogram">
+      <div class="panel-label">Histogram</div>
+      <canvas id="canvas-histogram"></canvas>
+    </div>
+
+    <div class="scope-panel" data-scope="falseColor">
+      <div class="panel-label">False Color</div>
+      <canvas id="canvas-falseColor"></canvas>
+    </div>
+  </div>
+
+  <footer>
+    <a href="https://github.com/openscope" target="_blank">GitHub</a>
+    &middot; MIT License &middot; WebGPU + Canvas 2D
+  </footer>
+
+  <script type="module" src="/src/main.ts"></script>
+</body>
+</html>

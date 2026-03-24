@@ -1,0 +1,146 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'SF Mono', 'Fira Code', 'JetBrains Mono', monospace;
+  background: #0a0a0a;
+  color: #e0e0e0;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+header {
+  padding: 16px 24px;
+  border-bottom: 1px solid #222;
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+}
+
+header h1 {
+  font-size: 18px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  color: #fff;
+}
+
+.subtitle {
+  font-size: 12px;
+  color: #666;
+}
+
+.controls {
+  padding: 12px 24px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border-bottom: 1px solid #1a1a1a;
+}
+
+.controls button,
+.controls .file-input {
+  background: #1a1a1a;
+  border: 1px solid #333;
+  color: #ccc;
+  padding: 6px 14px;
+  border-radius: 4px;
+  font-family: inherit;
+  font-size: 12px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.controls button:hover,
+.controls .file-input:hover {
+  background: #252525;
+}
+
+.controls button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.file-input input {
+  display: none;
+}
+
+#status {
+  font-size: 11px;
+  color: #555;
+  margin-left: auto;
+}
+
+.layout {
+  flex: 1;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  grid-template-rows: repeat(2, 1fr);
+  gap: 2px;
+  padding: 2px;
+  min-height: 0;
+}
+
+.source-panel,
+.scope-panel {
+  background: #111;
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.panel-label {
+  position: absolute;
+  top: 6px;
+  left: 8px;
+  font-size: 10px;
+  color: #555;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  z-index: 1;
+  pointer-events: none;
+}
+
+.source-panel video,
+.source-panel canvas {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.scope-panel canvas {
+  width: 100%;
+  height: 100%;
+}
+
+footer {
+  padding: 10px 24px;
+  font-size: 11px;
+  color: #444;
+  border-top: 1px solid #1a1a1a;
+  text-align: center;
+}
+
+footer a {
+  color: #666;
+  text-decoration: none;
+}
+
+footer a:hover {
+  color: #aaa;
+}
+
+/* GPU not supported banner */
+.gpu-warning {
+  background: #331a00;
+  color: #ffaa44;
+  padding: 10px 24px;
+  font-size: 12px;
+  text-align: center;
+  border-bottom: 1px solid #553300;
+}
