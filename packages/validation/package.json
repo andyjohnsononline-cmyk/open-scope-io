@@ -1,0 +1,15 @@
+{
+  "name": "@openscope/validation",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Conformance validation suite for OpenScope scope analysis",
+  "type": "module",
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@openscope/core": "workspace:*",
+    "@openscope/shaders": "workspace:*"
+  },
+  "license": "MIT"
+}
