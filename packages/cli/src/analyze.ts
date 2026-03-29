@@ -78,7 +78,7 @@ export async function analyze(file: string, opts: AnalyzeOptions): Promise<void>
   const partial = output.frames.some(
     (f) => Object.keys(f.scopes).length < opts.scopes.length,
   );
-  process.exit(partial ? 1 : 0);
+  process.exitCode = partial ? 1 : 0;
 }
 
 function formatFrame(
