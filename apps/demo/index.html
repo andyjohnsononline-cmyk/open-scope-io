@@ -19,6 +19,7 @@
     </label>
     <button id="webcamBtn">Webcam</button>
     <button id="pauseBtn" disabled>Pause</button>
+    <button id="waveformModeBtn">Waveform: Luma</button>
     <span id="status">No source loaded</span>
   </div>
 
@@ -31,33 +32,43 @@
 
     <div class="scope-panel" data-scope="waveform">
       <div class="panel-label">Waveform</div>
-      <canvas id="canvas-waveform"></canvas>
+      <canvas id="canvas-waveform" role="img" aria-label="Waveform scope display"></canvas>
+      <canvas id="overlay-waveform" class="scope-overlay"></canvas>
+      <span class="scope-badge" id="badge-waveform"></span>
     </div>
 
     <div class="scope-panel" data-scope="rgbParade">
       <div class="panel-label">RGB Parade</div>
-      <canvas id="canvas-rgbParade"></canvas>
+      <canvas id="canvas-rgbParade" role="img" aria-label="RGB Parade scope display"></canvas>
+      <canvas id="overlay-rgbParade" class="scope-overlay"></canvas>
+      <span class="scope-badge" id="badge-rgbParade"></span>
     </div>
 
     <div class="scope-panel" data-scope="vectorscope">
       <div class="panel-label">Vectorscope</div>
-      <canvas id="canvas-vectorscope"></canvas>
+      <canvas id="canvas-vectorscope" role="img" aria-label="Vectorscope scope display"></canvas>
+      <canvas id="overlay-vectorscope" class="scope-overlay"></canvas>
+      <span class="scope-badge" id="badge-vectorscope"></span>
     </div>
 
     <div class="scope-panel" data-scope="histogram">
       <div class="panel-label">Histogram</div>
-      <canvas id="canvas-histogram"></canvas>
+      <canvas id="canvas-histogram" role="img" aria-label="Histogram scope display"></canvas>
+      <canvas id="overlay-histogram" class="scope-overlay"></canvas>
+      <span class="scope-badge" id="badge-histogram"></span>
     </div>
 
     <div class="scope-panel" data-scope="falseColor">
       <div class="panel-label">False Color</div>
-      <canvas id="canvas-falseColor"></canvas>
+      <canvas id="canvas-falseColor" role="img" aria-label="False Color scope display"></canvas>
+      <canvas id="overlay-falseColor" class="scope-overlay"></canvas>
+      <span class="scope-badge" id="badge-falseColor"></span>
     </div>
   </div>
 
-  <footer>
+  <footer id="footer">
     <a href="https://github.com/openscope" target="_blank">GitHub</a>
-    &middot; MIT License &middot; WebGPU + Canvas 2D
+    &middot; MIT License &middot; <span id="renderMode">WebGPU + Canvas 2D</span>
   </footer>
 
   <script type="module" src="/src/main.ts"></script>
