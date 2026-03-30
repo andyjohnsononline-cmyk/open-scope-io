@@ -4,6 +4,24 @@ All notable changes to OpenScope will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.1.2.0] - 2026-03-29
+
+### Added
+
+- **WebGL2 scope renderer** (`@openscope/renderer`). New GPU-accelerated display pipeline replacing Canvas 2D for all 5 scope types. Multi-pass rendering: analysis buffer upload, log/linear/gamma tonemap, separable Gaussian blur, additive blend compositing, and graticule overlay. Matches DaVinci Resolve-quality visual rendering with smooth intensity gradients and natural density accumulation.
+- **ScopeAppearance configuration** interface for tuning intensity mapping, blur, glow, graticule styling, and background color. Ships with defaults tuned to match professional scope tools.
+- **WebGL2 infrastructure** — GL context management, shader compilation utilities, FBO management with RGBA16F/RGBA8 fallback, R32UI/R32F texture upload paths, and column-major transpose utility.
+- **Scope-specific WebGL renderers** for waveform (with RGB overlay mode), RGB parade, vectorscope (centered square viewport, skin-tone line, target boxes), histogram (log Y-axis, triangulated channel fills), and false color (fragment shader zone classification with legend overlay).
+- **GPU context loss recovery** — automatic fallback to Canvas 2D renderer with "CPU" badge indicators, restoration when context recovers.
+- **Waveform RGB/Luma mode toggle** in demo controls. RGB mode overlaps R/G/B channels with additive blending; Luma mode shows single white trace.
+- **Demo CSS alignment with DESIGN.md** — updated all color tokens, typography (Geist + Geist Mono via CDN), spacing, responsive breakpoints, and focus-visible styles to match the design system.
+- **WebGL rendering unit tests** — 48 new tests covering shader math equivalence (log/linear/gamma tonemap, sRGB/linear conversions, false color zones), column-major transpose, graticule geometry generation, and parseHexColor edge cases.
+
+### Changed
+
+- **Demo app** now auto-detects WebGL2 support and uses GPU-accelerated rendering by default with Canvas 2D as automatic fallback. Footer shows active rendering mode. Canvas sizing is DPR-aware for crisp HiDPI rendering.
+- **`@openscope/renderer` exports** now include `WebGlScopeRenderer`, `DEFAULT_APPEARANCE`, `ScopeAppearance`, and `WaveformMode`.
+
 ## [0.1.1.0] - 2026-03-29
 
 ### Added
