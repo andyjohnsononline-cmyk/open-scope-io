@@ -10,7 +10,7 @@ Monorepo using pnpm workspaces:
 packages/
   core/       — Plugin registry, GPU + CPU pipeline orchestration, types
   shaders/    — Built-in scope implementations (WGSL compute + CPU fallback)
-  renderer/   — Canvas 2D scope visualizations
+  renderer/   — WebGL2 + Canvas 2D scope visualizations
   cli/        — Headless CLI tool for agentic workflows
   openscope/  — Meta-package re-exporting everything
   validation/ — Conformance validation suite (private, test-only)
@@ -40,7 +40,8 @@ pnpm typecheck        # TypeScript type checking
 - **ScopePlugin** interface: each scope type provides a WGSL shader, buffer size calculator, result parser, and CPU fallback
 - **GpuPipeline**: WebGPU compute pipeline — creates textures from images, dispatches shaders, reads back results
 - **CpuPipeline**: Pure TypeScript fallback for Node.js / headless environments
-- **ScopeRenderer**: Maps scope IDs to Canvas 2D render functions
+- **ScopeRenderer**: Maps scope IDs to Canvas 2D render functions (fallback/headless)
+- **WebGlScopeRenderer**: WebGL2 GPU-accelerated display renderer with multi-pass pipeline (tonemap → blur → composite → graticule). Uses `ScopeAppearance` for configurable intensity, blur, glow, and graticule styling
 
 ## Color Science
 
