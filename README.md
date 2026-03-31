@@ -161,6 +161,10 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for how to add a new scope type.
 
 See [CHANGELOG.md](CHANGELOG.md) for version history.
 
+## Roadmap
+
+See [TODOS.md](TODOS.md) for planned features and design debt.
+
 ## License
 
 MIT
