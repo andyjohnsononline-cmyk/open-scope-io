@@ -10,7 +10,7 @@ Monorepo using pnpm workspaces:
 packages/
   core/       — Plugin registry, GPU + CPU pipeline orchestration, types
   shaders/    — Built-in scope implementations (WGSL compute + CPU fallback)
-  renderer/   — Canvas 2D scope visualizations
+  renderer/   — WebGL2 + Canvas 2D scope visualizations
   cli/        — Headless CLI tool for agentic workflows
   openscope/  — Meta-package re-exporting everything
   validation/ — Conformance validation suite (private, test-only)
@@ -40,7 +40,8 @@ pnpm typecheck        # TypeScript type checking
 - **ScopePlugin** interface: each scope type provides a WGSL shader, buffer size calculator, result parser, and CPU fallback
 - **GpuPipeline**: WebGPU compute pipeline — creates textures from images, dispatches shaders, reads back results
 - **CpuPipeline**: Pure TypeScript fallback for Node.js / headless environments
-- **ScopeRenderer**: Maps scope IDs to Canvas 2D render functions
+- **ScopeRenderer**: Maps scope IDs to Canvas 2D render functions (fallback/headless)
+- **WebGlScopeRenderer**: WebGL2 GPU-accelerated display renderer with multi-pass pipeline (tonemap → blur → composite → graticule). Uses `ScopeAppearance` for configurable intensity, blur, glow, and graticule styling
 
 ## Color Science
 
@@ -60,3 +61,21 @@ Always read DESIGN.md before making any visual or UI decisions.
 All font choices, colors, spacing, and aesthetic direction are defined there.
 Do not deviate without explicit user approval.
 In QA mode, flag any code that doesn't match DESIGN.md.
+
+## Skill routing
+
+When the user's request matches an available skill, ALWAYS invoke it using the Skill
+tool as your FIRST action. Do NOT answer directly, do NOT use other tools first.
+The skill has specialized workflows that produce better results than ad-hoc answers.
+
+Key routing rules:
+- Product ideas, "is this worth building", brainstorming → invoke office-hours
+- Bugs, errors, "why is this broken", 500 errors → invoke investigate
+- Ship, deploy, push, create PR → invoke ship
+- QA, test the site, find bugs → invoke qa
+- Code review, check my diff → invoke review
+- Update docs after shipping → invoke document-release
+- Weekly retro → invoke retro
+- Design system, brand → invoke design-consultation
+- Visual audit, design polish → invoke design-review
+- Architecture review → invoke plan-eng-review

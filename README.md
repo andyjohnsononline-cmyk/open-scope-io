@@ -8,6 +8,7 @@ Open source composable video scope engine. Waveform, vectorscope, histogram, RGB
 
 - **5 built-in scopes**: Luma Waveform, RGB Parade, Vectorscope, Histogram, False Color
 - **WebGPU compute shaders** for GPU-accelerated analysis in the browser
+- **WebGL2 display renderer** with additive blending, Gaussian blur, log intensity mapping, and graticule overlays — matches DaVinci Resolve visual quality
 - **CPU fallback** for Node.js CLI and headless/agentic workflows
 - **Plugin system** — add custom scope types (EL Zones, skin tone isolation, etc.)
 - **Agentic CLI** — `openscope analyze frame.png --format json` for AI agent pipelines
@@ -96,7 +97,7 @@ console.log(`IRE range: ${wfResult.metadata.minIre} - ${wfResult.metadata.maxIre
 | `openscope` | Meta-package — re-exports everything |
 | `@openscope/core` | Plugin registry, pipeline, types |
 | `@openscope/shaders` | Built-in scope implementations (GPU + CPU) |
-| `@openscope/renderer` | Canvas 2D scope visualizations |
+| `@openscope/renderer` | WebGL2 + Canvas 2D scope visualizations |
 | `@openscope/cli` | CLI binary for headless analysis |
 
 ## Architecture
@@ -107,7 +108,7 @@ console.log(`IRE range: ${wfResult.metadata.minIre} - ${wfResult.metadata.maxIre
 │  Browser Demo │ CLI Tool │ Third-party Embed │
 ├──────────────────────────────────────────────┤
 │            @openscope/renderer               │
-│      Canvas 2D rendering of visualizations   │
+│   WebGL2 + Canvas 2D scope visualizations    │
 ├──────────────────────────────────────────────┤
 │              @openscope/core                 │
 │     Plugin registry + pipeline orchestration │
@@ -148,9 +149,21 @@ pnpm build
 
 v1 assumes sRGB / Rec.709 input with BT.709 luma coefficients (0.2126 R + 0.7152 G + 0.0722 B). OCIO integration for ACES / Rec.2020 / DCI-P3 is planned for v2.
 
+## Design System
+
+See [DESIGN.md](DESIGN.md) for visual/UI guidelines (colors, typography, spacing).
+
 ## Contributing
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for how to add a new scope type.
+
+## Changelog
+
+See [CHANGELOG.md](CHANGELOG.md) for version history.
+
+## Roadmap
+
+See [TODOS.md](TODOS.md) for planned features and design debt.
 
 ## License
 
