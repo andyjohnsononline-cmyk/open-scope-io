@@ -8,7 +8,7 @@
 - **Pros:** Meets WCAG AA, more readable for users with mild vision impairment
 - **Cons:** Changes DESIGN.md, labels become more prominent (compete more with trace data)
 - **Context:** Design system decision. Review with actual scope rendering in place to see if brighter labels compete with trace data.
-- **Depends on:** WebGL2 renderer implementation (need to see it running first)
+- **Depends on:** Nothing (WebGL2 renderer shipped in v0.1.2.0, can evaluate now)
 
 ### Appearance presets / theme system
 - **What:** Build a theme/preset system for ScopeAppearance. Ship bundled presets ("resolve-like", "omniscope", "classic-broadcast") and let users create custom presets via JSON files.
@@ -16,7 +16,7 @@
 - **Pros:** Unique open-source feature, professional customization, potential community contributions
 - **Cons:** Adds complexity, needs UI for preset selection in the demo, JSON schema maintenance
 - **Context:** Cross-model insight from /office-hours suggested making rendering appearance a versioned, testable artifact. ScopeAppearance interface is already designed to support this. Explicitly deferred from v1.
-- **Depends on:** WebGL2 renderer + ScopeAppearance implementation
+- **Depends on:** Nothing (WebGL2 renderer + ScopeAppearance shipped in v0.1.2.0)
 
 ### ScopeDisplayBackend abstraction
 - **What:** Extract a `ScopeDisplayBackend` interface so renderer consumers can swap WebGL2/Canvas 2D/future backends without touching app code.
@@ -24,11 +24,11 @@
 - **Pros:** Better architecture, testability, future-proof
 - **Cons:** Premature if only two backends exist. Adds indirection.
 - **Context:** Deferred from CEO Review (via /autoplan). Consensus: correct idea, wrong time. Build the concrete backends first, extract the interface when a third consumer appears.
-- **Depends on:** WebGL2 renderer + Canvas 2D fallback both stable
+- **Depends on:** Nothing (both backends shipped in v0.1.2.0)
 
 ### Adoption metric (scope render time logging)
 - **What:** Log render time per scope per frame to enable performance tracking and A/B comparison.
 - **Why:** Without measurement, can't prove WebGL2 is faster or detect regressions.
 - **Pros:** Data-driven perf optimization, CI perf regression detection
 - **Cons:** Console noise, needs opt-in mechanism
-- **Context:** Deferred from CEO Review (via /autoplan). Outside current plan's scope. Revisit after v1 WebGL2 renderer ships.
+- **Context:** Deferred from CEO Review (via /autoplan). WebGL2 renderer has shipped (v0.1.2.0), ready to implement.
