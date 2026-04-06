@@ -355,6 +355,38 @@ describe('Industry Pattern Invariants', () => {
     });
   });
 
+  describe('RGB Parade channel imbalance — color cast detection', () => {
+    it('neutral gray has zero channel imbalance', async () => {
+      const p = createCpuPipeline();
+      for (const scope of allScopes) p.register(scope);
+      const pixels = generateSolidColor(W, H, 128, 128, 128);
+      const results = await p.analyze({ data: pixels, width: W, height: H });
+      const parade = results.get('rgbParade')!;
+      expect(parade.metadata.channelImbalance).toBe(0);
+      p.destroy();
+    });
+
+    it('CDL-graded content has non-zero channel imbalance', async () => {
+      const p = createCpuPipeline();
+      for (const scope of allScopes) p.register(scope);
+      const pixels = generateCDLGraded(W, H, [1.5, 0.5, 1.0]);
+      const results = await p.analyze({ data: pixels, width: W, height: H });
+      const parade = results.get('rgbParade')!;
+      expect(parade.metadata.channelImbalance as number).toBeGreaterThan(0);
+      p.destroy();
+    });
+
+    it('pure red has maximum channel imbalance', async () => {
+      const p = createCpuPipeline();
+      for (const scope of allScopes) p.register(scope);
+      const pixels = generateSolidColor(W, H, 255, 0, 0);
+      const results = await p.analyze({ data: pixels, width: W, height: H });
+      const parade = results.get('rgbParade')!;
+      expect(parade.metadata.channelImbalance as number).toBeGreaterThan(50);
+      p.destroy();
+    });
+  });
+
   describe('Clipping detection — Resolve shadow/highlight flags', () => {
     it('clippingShadows=true when >1% of pixels are in bins 0-3', async () => {
       const p = createCpuPipeline();

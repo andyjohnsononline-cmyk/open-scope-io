@@ -33,9 +33,10 @@ function analyzeCpu(
   const data = new Uint32Array(width * BINS * 3);
   const stride = width * BINS;
 
-  let rMin = 255, rMax = 0;
-  let gMin = 255, gMax = 0;
-  let bMin = 255, bMax = 0;
+  let rMin = 255, rMax = 0, rSum = 0;
+  let gMin = 255, gMax = 0, gSum = 0;
+  let bMin = 255, bMax = 0, bSum = 0;
+  const totalPixels = width * height;
 
   for (let y = 0; y < height; y++) {
     for (let x = 0; x < width; x++) {
@@ -50,14 +51,28 @@ function analyzeCpu(
 
       if (r < rMin) rMin = r;
       if (r > rMax) rMax = r;
+      rSum += r;
       if (g < gMin) gMin = g;
       if (g > gMax) gMax = g;
+      gSum += g;
       if (b < bMin) bMin = b;
       if (b > bMax) bMax = b;
+      bSum += b;
     }
   }
 
   const toIre = (v: number) => Math.round((v / 255) * 10000) / 100;
+  const rMean = rSum / totalPixels;
+  const gMean = gSum / totalPixels;
+  const bMean = bSum / totalPixels;
+  const overallMean = (rMean + gMean + bMean) / 3;
+  const channelImbalance = overallMean > 0
+    ? Math.round(Math.max(
+        Math.abs(rMean - overallMean),
+        Math.abs(gMean - overallMean),
+        Math.abs(bMean - overallMean),
+      ) / overallMean * 10000) / 100
+    : 0;
 
   return {
     scopeId: 'rgbParade',
@@ -72,6 +87,7 @@ function analyzeCpu(
       bMax: toIre(bMax),
       minIre: toIre(Math.min(rMin, gMin, bMin)),
       maxIre: toIre(Math.max(rMax, gMax, bMax)),
+      channelImbalance,
     },
   };
 }
