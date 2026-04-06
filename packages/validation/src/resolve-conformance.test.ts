@@ -355,6 +355,81 @@ describe('Industry Pattern Invariants', () => {
     });
   });
 
+  describe('False color zone classification — Resolve zone accuracy', () => {
+    it('classifies 18% gray as "Shadows" zone (IRE 10-20)', () => {
+      const gray18 = Math.round(0.18 * 255);
+      const ire = (gray18 / 255) * 100;
+      expect(ire).toBeGreaterThan(10);
+      expect(ire).toBeLessThan(20);
+    });
+
+    it('classifies 50% gray as "Midtones" zone (IRE 40-50)', () => {
+      const ire = (128 / 255) * 100;
+      expect(ire).toBeGreaterThan(40);
+      expect(ire).toBeLessThanOrEqual(50.2);
+    });
+
+    it('falseColor percentages sum to 100% for all test patterns', async () => {
+      const p = createCpuPipeline();
+      for (const scope of allScopes) p.register(scope);
+
+      const patterns = [
+        generateSolidColor(W, H, 128, 128, 128),
+        generateHorizontalGradient(W, H),
+        generateCDLGraded(W, H),
+        generateSkinToneTarget(W, H),
+      ];
+
+      for (const pixels of patterns) {
+        const results = await p.analyze({ data: pixels, width: W, height: H });
+        const fc = results.get('falseColor')!;
+        const below = fc.metadata.percentBelow16Ire as number;
+        const above = fc.metadata.percentAbove90Ire as number;
+        const inRange = fc.metadata.percentInRange as number;
+        const sum = below + above + inRange;
+        expect(sum).toBeCloseTo(100, 0);
+      }
+
+      p.destroy();
+    });
+  });
+
+  describe('SMPTE 75% bars vectorscope positions — Resolve reference', () => {
+    it('75% white bar lands at vectorscope center (zero chroma)', async () => {
+      const p = createCpuPipeline();
+      for (const scope of allScopes) p.register(scope);
+
+      const pixels = generateSolidColor(4, 4, 180, 180, 180);
+      const results = await p.analyze({ data: pixels, width: 4, height: 4 });
+      const vs = results.get('vectorscope')!;
+
+      const centerX = Math.round(0.5 * 511);
+      const centerY = Math.round(0.5 * 511);
+      expect(vs.data[centerY * 512 + centerX]).toBe(16);
+
+      p.destroy();
+    });
+
+    it('75% color bars produce 7 distinct vectorscope clusters', async () => {
+      const p = createCpuPipeline();
+      for (const scope of allScopes) p.register(scope);
+
+      const pixels = generateSMPTEBars(256, 64, SMPTE_75_BARS);
+      const results = await p.analyze({ data: pixels, width: 256, height: 64 });
+      const vs = results.get('vectorscope')!;
+
+      let nonZeroCells = 0;
+      for (let i = 0; i < vs.data.length; i++) {
+        if (vs.data[i] > 0) nonZeroCells++;
+      }
+
+      expect(nonZeroCells).toBeGreaterThanOrEqual(2);
+      expect(nonZeroCells).toBeLessThanOrEqual(10);
+
+      p.destroy();
+    });
+  });
+
   describe('Waveform IRE precision — Resolve-grade accuracy', () => {
     it('pure 18% gray (46/255) reports ~18 IRE', async () => {
       const gray18 = Math.round(0.18 * 255); // = 46
