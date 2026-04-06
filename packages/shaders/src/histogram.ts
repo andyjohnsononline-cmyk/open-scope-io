@@ -59,6 +59,12 @@ function buildResult(data: Uint32Array, totalPixels: number): ScopeResult {
     metadata: {
       mode: findMode(data, lumaOffset),
       median: findMedian(data, lumaOffset, totalPixels),
+      rMode: findMode(data, 0),
+      gMode: findMode(data, BINS),
+      bMode: findMode(data, BINS * 2),
+      rMedian: findMedian(data, 0, totalPixels),
+      gMedian: findMedian(data, BINS, totalPixels),
+      bMedian: findMedian(data, BINS * 2, totalPixels),
     },
   };
 }
