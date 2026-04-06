@@ -27,11 +27,11 @@ fn main(@builtin(global_invocation_id) gid: vec3u) {
 }
 `;
 
-function findMode(bins: Uint32Array | number[], offset: number): number {
+function findMode(data: Uint32Array, offset: number): number {
   let maxCount = 0;
   let modeValue = 0;
   for (let i = 0; i < BINS; i++) {
-    const count = typeof bins[offset + i] === 'number' ? bins[offset + i] : 0;
+    const count = data[offset + i];
     if (count > maxCount) {
       maxCount = count;
       modeValue = i;
@@ -40,11 +40,11 @@ function findMode(bins: Uint32Array | number[], offset: number): number {
   return modeValue;
 }
 
-function findMedian(bins: Uint32Array | number[], offset: number, total: number): number {
+function findMedian(data: Uint32Array, offset: number, total: number): number {
   let running = 0;
   const half = total / 2;
   for (let i = 0; i < BINS; i++) {
-    running += bins[offset + i];
+    running += data[offset + i];
     if (running >= half) return i;
   }
   return 255;
