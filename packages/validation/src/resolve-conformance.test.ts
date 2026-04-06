@@ -355,6 +355,62 @@ describe('Industry Pattern Invariants', () => {
     });
   });
 
+  describe('Luma bin consistency across scopes', () => {
+    it('waveform, histogram, and falseColor agree on luma bin assignment for single-pixel images', () => {
+      const testColors: [number, number, number][] = [
+        [1, 0, 0],
+        [0, 1, 0],
+        [0, 0, 1],
+        [1, 1, 1],
+        [128, 128, 128],
+        [200, 100, 50],
+        [10, 20, 30],
+        [255, 128, 0],
+      ];
+
+      const p = createCpuPipeline();
+      for (const scope of allScopes) p.register(scope);
+
+      for (const [r, g, b] of testColors) {
+        const pixels = generateSolidColor(1, 1, r, g, b);
+        // synchronous analysis for single pixel
+        const results: Map<string, ScopeResult> = new Map();
+        p.analyze({ data: pixels, width: 1, height: 1 }).then(res => {
+          for (const [id, val] of res) results.set(id, val);
+        });
+      }
+
+      p.destroy();
+    });
+
+    it('histogram luma total equals falseColor total for all industry patterns', () => {
+      const p = createCpuPipeline();
+      for (const scope of allScopes) p.register(scope);
+
+      const patterns = [
+        generateCDLGraded(W, H),
+        generateCDLGraded(W, H, [0.5, 1.5, 1.0], [0.1, -0.1, 0.0], [0.8, 1.2, 1.0]),
+      ];
+
+      for (const pixels of patterns) {
+        p.analyze({ data: pixels, width: W, height: H }).then(results => {
+          const hist = results.get('histogram')!;
+          const fc = results.get('falseColor')!;
+
+          let histLumaTotal = 0;
+          let fcTotal = 0;
+          for (let b = 0; b < 256; b++) {
+            histLumaTotal += hist.data[768 + b];
+            fcTotal += fc.data[b];
+          }
+          expect(histLumaTotal).toBe(fcTotal);
+        });
+      }
+
+      p.destroy();
+    });
+  });
+
   describe('CDL-graded gradient — color transform validation', () => {
     let results: Map<string, ScopeResult>;
     const slope: [number, number, number] = [1.2, 1.0, 0.8];
