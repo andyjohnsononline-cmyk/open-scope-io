@@ -28,25 +28,25 @@ function analyzeCpu(
 ): ScopeResult {
   const data = new Uint32Array(width * BINS);
 
-  let minIre = 1;
-  let maxIre = 0;
+  let minLuma = 255;
+  let maxLuma = 0;
   let totalLuma = 0;
   const totalPixels = width * height;
 
   for (let y = 0; y < height; y++) {
     for (let x = 0; x < width; x++) {
       const i = (y * width + x) * 4;
-      const l = luma(pixels[i], pixels[i + 1], pixels[i + 2]) / 255;
-      const bin = clamp(Math.round(l * 255), 0, 255);
+      const l = luma(pixels[i], pixels[i + 1], pixels[i + 2]);
+      const bin = clamp(Math.round(l), 0, 255);
       data[x * BINS + bin]++;
 
-      if (l < minIre) minIre = l;
-      if (l > maxIre) maxIre = l;
+      if (l < minLuma) minLuma = l;
+      if (l > maxLuma) maxLuma = l;
       totalLuma += l;
     }
   }
 
-  const meanIre = totalLuma / totalPixels;
+  const toIre = (v: number) => round4((v / 255) * 100);
   const clippingShadows = countBinsBelow(data, width, 4) > totalPixels * 0.01;
   const clippingHighlights = countBinsAbove(data, width, 251) > totalPixels * 0.01;
 
@@ -55,9 +55,9 @@ function analyzeCpu(
     data,
     shape: [width, BINS],
     metadata: {
-      minIre: round4(minIre * 100),
-      maxIre: round4(maxIre * 100),
-      meanIre: round4(meanIre * 100),
+      minIre: toIre(minLuma),
+      maxIre: toIre(maxLuma),
+      meanIre: toIre(totalLuma / totalPixels),
       clippingShadows,
       clippingHighlights,
     },
