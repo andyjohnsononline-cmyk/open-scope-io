@@ -53,6 +53,24 @@ export function checkCrossScopeInvariants(
     }
   }
 
+  // Histogram luma bins must exactly match false color bins
+  const falseColor = results.get('falseColor');
+  if (histogram && falseColor) {
+    const lumaOffset = 3 * BINS;
+    for (let b = 0; b < BINS; b++) {
+      const histCount = histogram.data[lumaOffset + b];
+      const fcCount = falseColor.data[b];
+      if (histCount !== fcCount) {
+        violations.push({
+          invariant: `histogram_falseColor_luma_bin_${b}`,
+          expected: `histogram luma bin[${b}] = falseColor bin[${b}]`,
+          actual: `histogram = ${histCount}, falseColor = ${fcCount}`,
+        });
+        break;
+      }
+    }
+  }
+
   // Histogram R channel total must equal parade R channel total
   if (histogram && parade) {
     const stride = width * BINS;

@@ -21,6 +21,7 @@ import {
   generateNearBlackGradient,
   generateNearWhiteGradient,
   generateChannelRamps,
+  generateCDLGraded,
   EBU_100_BARS,
 } from './generators/index.js';
 import {
@@ -351,6 +352,47 @@ describe('Industry Pattern Invariants', () => {
     it('waveform: clippingHighlights may be set', () => {
       const wf = results.get('waveform')!;
       expect(wf.metadata.minIre as number).toBeGreaterThan(90);
+    });
+  });
+
+  describe('CDL-graded gradient — color transform validation', () => {
+    let results: Map<string, ScopeResult>;
+    const slope: [number, number, number] = [1.2, 1.0, 0.8];
+    const offset: [number, number, number] = [0.02, 0.0, -0.02];
+    const power: [number, number, number] = [1.0, 1.0, 1.0];
+
+    beforeAll(async () => {
+      const pixels = generateCDLGraded(W, H, slope, offset, power);
+      results = await pipeline.analyze({ data: pixels, width: W, height: H });
+    });
+
+    it('RGB parade: R channel extends further than B channel (slope R=1.2 > B=0.8)', () => {
+      const p = results.get('rgbParade')!;
+      const rMax = p.metadata.rMax as number;
+      const bMax = p.metadata.bMax as number;
+      expect(rMax).toBeGreaterThan(bMax);
+    });
+
+    it('histogram: R channel mode is higher than B channel mode', () => {
+      const hist = results.get('histogram')!;
+      let rModeVal = 0, rModeCount = 0;
+      let bModeVal = 0, bModeCount = 0;
+      for (let b = 0; b < 256; b++) {
+        if (hist.data[b] > rModeCount) { rModeCount = hist.data[b]; rModeVal = b; }
+        if (hist.data[512 + b] > bModeCount) { bModeCount = hist.data[512 + b]; bModeVal = b; }
+      }
+      expect(rModeVal).toBeGreaterThanOrEqual(bModeVal);
+    });
+
+    it('all invariants hold for CDL-graded content', () => {
+      const violations = [
+        ...checkHistogramInvariants(results.get('histogram')!, W, H),
+        ...checkWaveformInvariants(results.get('waveform')!, W, H),
+        ...checkParadeInvariants(results.get('rgbParade')!, W, H),
+        ...checkVectorscopeInvariants(results.get('vectorscope')!, W, H),
+        ...checkCrossScopeInvariants(results, W, H),
+      ];
+      expect(violations).toEqual([]);
     });
   });
 });
