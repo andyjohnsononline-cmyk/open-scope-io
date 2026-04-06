@@ -5,3 +5,7 @@ dist/
 *.log
 coverage/
 .gstack/
+
+# Autoresearch
+results.tsv
+run.log
