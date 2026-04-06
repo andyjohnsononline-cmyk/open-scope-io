@@ -50,6 +50,17 @@ function analyzeCpu(
   const clippingShadows = countBinsBelow(data, width, 4) > totalPixels * 0.01;
   const clippingHighlights = countBinsAbove(data, width, 251) > totalPixels * 0.01;
 
+  let clippingShadowCols = 0;
+  let clippingHighlightCols = 0;
+  for (let x = 0; x < width; x++) {
+    let shadowCount = 0;
+    let highlightCount = 0;
+    for (let b = 0; b < 4; b++) shadowCount += data[x * BINS + b];
+    for (let b = 251; b < BINS; b++) highlightCount += data[x * BINS + b];
+    if (shadowCount > height * 0.01) clippingShadowCols++;
+    if (highlightCount > height * 0.01) clippingHighlightCols++;
+  }
+
   return {
     scopeId: 'waveform',
     data,
@@ -60,6 +71,8 @@ function analyzeCpu(
       meanIre: toIre(totalLuma / totalPixels),
       clippingShadows,
       clippingHighlights,
+      clippingShadowColumns: clippingShadowCols,
+      clippingHighlightColumns: clippingHighlightCols,
     },
   };
 }

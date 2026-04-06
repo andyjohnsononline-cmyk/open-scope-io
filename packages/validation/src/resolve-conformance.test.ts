@@ -435,6 +435,28 @@ describe('Industry Pattern Invariants', () => {
 
       p.destroy();
     });
+
+    it('column-level clipping: solid black clips all columns', async () => {
+      const p = createCpuPipeline();
+      for (const scope of allScopes) p.register(scope);
+      const pixels = generateSolidColor(W, H, 0, 0, 0);
+      const results = await p.analyze({ data: pixels, width: W, height: H });
+      const wf = results.get('waveform')!;
+      expect(wf.metadata.clippingShadowColumns).toBe(W);
+      expect(wf.metadata.clippingHighlightColumns).toBe(0);
+      p.destroy();
+    });
+
+    it('column-level clipping: solid white clips all highlight columns', async () => {
+      const p = createCpuPipeline();
+      for (const scope of allScopes) p.register(scope);
+      const pixels = generateSolidColor(W, H, 255, 255, 255);
+      const results = await p.analyze({ data: pixels, width: W, height: H });
+      const wf = results.get('waveform')!;
+      expect(wf.metadata.clippingShadowColumns).toBe(0);
+      expect(wf.metadata.clippingHighlightColumns).toBe(W);
+      p.destroy();
+    });
   });
 
   describe('False color zone classification — Resolve zone accuracy', () => {
