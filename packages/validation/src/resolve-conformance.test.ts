@@ -355,6 +355,56 @@ describe('Industry Pattern Invariants', () => {
     });
   });
 
+  describe('Clipping detection — Resolve shadow/highlight flags', () => {
+    it('clippingShadows=true when >1% of pixels are in bins 0-3', async () => {
+      const p = createCpuPipeline();
+      for (const scope of allScopes) p.register(scope);
+
+      const pixels = generateSolidColor(W, H, 2, 2, 2);
+      const results = await p.analyze({ data: pixels, width: W, height: H });
+      const wf = results.get('waveform')!;
+      expect(wf.metadata.clippingShadows).toBe(true);
+
+      p.destroy();
+    });
+
+    it('clippingShadows=false for mid-gray', async () => {
+      const p = createCpuPipeline();
+      for (const scope of allScopes) p.register(scope);
+
+      const pixels = generateSolidColor(W, H, 128, 128, 128);
+      const results = await p.analyze({ data: pixels, width: W, height: H });
+      const wf = results.get('waveform')!;
+      expect(wf.metadata.clippingShadows).toBe(false);
+
+      p.destroy();
+    });
+
+    it('clippingHighlights=true when >1% of pixels are in bins 251-255', async () => {
+      const p = createCpuPipeline();
+      for (const scope of allScopes) p.register(scope);
+
+      const pixels = generateSolidColor(W, H, 253, 253, 253);
+      const results = await p.analyze({ data: pixels, width: W, height: H });
+      const wf = results.get('waveform')!;
+      expect(wf.metadata.clippingHighlights).toBe(true);
+
+      p.destroy();
+    });
+
+    it('clippingHighlights=false for mid-gray', async () => {
+      const p = createCpuPipeline();
+      for (const scope of allScopes) p.register(scope);
+
+      const pixels = generateSolidColor(W, H, 128, 128, 128);
+      const results = await p.analyze({ data: pixels, width: W, height: H });
+      const wf = results.get('waveform')!;
+      expect(wf.metadata.clippingHighlights).toBe(false);
+
+      p.destroy();
+    });
+  });
+
   describe('False color zone classification — Resolve zone accuracy', () => {
     it('classifies 18% gray as "Shadows" zone (IRE 10-20)', () => {
       const gray18 = Math.round(0.18 * 255);
