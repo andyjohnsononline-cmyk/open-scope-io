@@ -728,6 +728,54 @@ describe('Industry Pattern Invariants', () => {
     });
   });
 
+  describe('Edge case dimensions — robustness', () => {
+    it('1x1 pixel image produces valid results for all scopes', async () => {
+      const p = createCpuPipeline();
+      for (const scope of allScopes) p.register(scope);
+      const pixels = generateSolidColor(1, 1, 128, 64, 200);
+      const results = await p.analyze({ data: pixels, width: 1, height: 1 });
+
+      expect(results.get('waveform')!.data.length).toBe(256);
+      expect(results.get('histogram')!.data.length).toBe(1024);
+      expect(results.get('vectorscope')!.data.length).toBe(512 * 512);
+      expect(results.get('rgbParade')!.data.length).toBe(256 * 3);
+      expect(results.get('falseColor')!.data.length).toBe(256);
+
+      const violations = checkCrossScopeInvariants(results, 1, 1);
+      expect(violations).toEqual([]);
+
+      p.destroy();
+    });
+
+    it('1xH tall strip produces valid waveform with 1 column', async () => {
+      const p = createCpuPipeline();
+      for (const scope of allScopes) p.register(scope);
+      const pixels = generateHorizontalGradient(1, 256);
+      const results = await p.analyze({ data: pixels, width: 1, height: 256 });
+      const wf = results.get('waveform')!;
+      expect(wf.shape[0]).toBe(1);
+
+      const violations = checkCrossScopeInvariants(results, 1, 256);
+      expect(violations).toEqual([]);
+
+      p.destroy();
+    });
+
+    it('Wx1 single row produces valid parade', async () => {
+      const p = createCpuPipeline();
+      for (const scope of allScopes) p.register(scope);
+      const pixels = generateHorizontalGradient(256, 1);
+      const results = await p.analyze({ data: pixels, width: 256, height: 1 });
+      const parade = results.get('rgbParade')!;
+      expect(parade.shape[0]).toBe(256 * 3);
+
+      const violations = checkCrossScopeInvariants(results, 256, 1);
+      expect(violations).toEqual([]);
+
+      p.destroy();
+    });
+  });
+
   describe('CDL-graded gradient — color transform validation', () => {
     let results: Map<string, ScopeResult>;
     const slope: [number, number, number] = [1.2, 1.0, 0.8];
