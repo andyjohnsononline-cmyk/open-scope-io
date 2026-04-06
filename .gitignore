@@ -9,3 +9,6 @@ coverage/
 # Autoresearch
 results.tsv
 run.log
+
+# Resolve golden JSONs (regenerate with: pnpm prepare:goldens)
+packages/validation/src/goldens/isabella-*.golden.json

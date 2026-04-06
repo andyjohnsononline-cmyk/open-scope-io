@@ -817,3 +817,251 @@ describe('Industry Pattern Invariants', () => {
     });
   });
 });
+
+// ── Resolve-exported frame tests ──────────────────────────────────────────────
+
+interface ResolveTestCase {
+  name: string;
+  tifPath: string;
+  width: number;
+  height: number;
+}
+
+const RESOLVE_FRAMES_DIR = new URL('./goldens/frames/', import.meta.url).pathname;
+
+const RESOLVE_TEST_CASES: ResolveTestCase[] = [
+  {
+    name: 'isabella-no-lut',
+    tifPath: `${RESOLVE_FRAMES_DIR}isabella-no-lut.tif`,
+    width: 1920,
+    height: 1080,
+  },
+  {
+    name: 'isabella-aces13-rec709',
+    tifPath: `${RESOLVE_FRAMES_DIR}isabella-aces13-rec709.tif`,
+    width: 1920,
+    height: 1080,
+  },
+  {
+    name: 'isabella-aces13-hdr-p3',
+    tifPath: `${RESOLVE_FRAMES_DIR}isabella-aces13-hdr-p3.tif`,
+    width: 1920,
+    height: 1080,
+  },
+];
+
+async function loadTifPixels(
+  tifPath: string,
+): Promise<{ data: Uint8ClampedArray; width: number; height: number }> {
+  const sharp = (await import('sharp')).default;
+  const image = sharp(tifPath);
+  const meta = await image.metadata();
+  const w = meta.width!;
+  const h = meta.height!;
+  const buffer = await image.ensureAlpha().raw().toBuffer();
+  return {
+    data: new Uint8ClampedArray(buffer.buffer, buffer.byteOffset, buffer.byteLength),
+    width: w,
+    height: h,
+  };
+}
+
+describe('Resolve-exported frames — real-world conformance', () => {
+  const resolveResults = new Map<string, Map<string, ScopeResult>>();
+
+  beforeAll(async () => {
+    const pipeline = createCpuPipeline();
+    for (const scope of allScopes) pipeline.register(scope);
+
+    for (const tc of RESOLVE_TEST_CASES) {
+      const frame = await loadTifPixels(tc.tifPath);
+      const results = await pipeline.analyze(frame);
+      resolveResults.set(tc.name, results);
+    }
+
+    pipeline.destroy();
+  });
+
+  for (const tc of RESOLVE_TEST_CASES) {
+    describe(`${tc.name} — invariants`, () => {
+      it('histogram invariants hold', () => {
+        const results = resolveResults.get(tc.name)!;
+        const violations = checkHistogramInvariants(results.get('histogram')!, tc.width, tc.height);
+        expect(violations).toEqual([]);
+      });
+
+      it('waveform invariants hold', () => {
+        const results = resolveResults.get(tc.name)!;
+        const violations = checkWaveformInvariants(results.get('waveform')!, tc.width, tc.height);
+        expect(violations).toEqual([]);
+      });
+
+      it('parade invariants hold', () => {
+        const results = resolveResults.get(tc.name)!;
+        const violations = checkParadeInvariants(results.get('rgbParade')!, tc.width, tc.height);
+        expect(violations).toEqual([]);
+      });
+
+      it('vectorscope invariants hold', () => {
+        const results = resolveResults.get(tc.name)!;
+        const violations = checkVectorscopeInvariants(results.get('vectorscope')!, tc.width, tc.height);
+        expect(violations).toEqual([]);
+      });
+
+      it('cross-scope invariants hold', () => {
+        const results = resolveResults.get(tc.name)!;
+        const violations = checkCrossScopeInvariants(results, tc.width, tc.height);
+        expect(violations).toEqual([]);
+      });
+    });
+  }
+
+  // ── Targeted assertions from Resolve scope screenshots ────────────────
+
+  describe('isabella-no-lut — targeted assertions', () => {
+    it('waveform: maxIre < 80 (no signal above 80 IRE in raw source)', () => {
+      const wf = resolveResults.get('isabella-no-lut')!.get('waveform')!;
+      expect(wf.metadata.maxIre as number).toBeLessThan(80);
+    });
+
+    it('vectorscope: low saturation (satPeak < 0.2)', () => {
+      const vs = resolveResults.get('isabella-no-lut')!.get('vectorscope')!;
+      expect(vs.metadata.saturationPeak as number).toBeLessThan(0.2);
+    });
+
+    it('vectorscope: tight cluster near center (satMean < 0.03)', () => {
+      const vs = resolveResults.get('isabella-no-lut')!.get('vectorscope')!;
+      expect(vs.metadata.saturationMean as number).toBeLessThan(0.03);
+    });
+
+    it('histogram: shadow-heavy (median < 100)', () => {
+      const hist = resolveResults.get('isabella-no-lut')!.get('histogram')!;
+      expect(hist.metadata.median as number).toBeLessThan(100);
+    });
+
+    it('falseColor: no highlight clipping', () => {
+      const fc = resolveResults.get('isabella-no-lut')!.get('falseColor')!;
+      expect(fc.metadata.percentAbove90Ire as number).toBe(0);
+    });
+
+    it('skin tone line deviation < 20 degrees', () => {
+      const vs = resolveResults.get('isabella-no-lut')!.get('vectorscope')!;
+      expect(vs.metadata.skinToneLineDeviationDegrees as number).toBeLessThan(20);
+      expect(vs.metadata.skinToneLineDeviationDegrees as number).toBeGreaterThan(0);
+    });
+  });
+
+  describe('isabella-aces13-rec709 — targeted assertions', () => {
+    it('waveform: ACES lifts highlights (maxIre > 90)', () => {
+      const wf = resolveResults.get('isabella-aces13-rec709')!.get('waveform')!;
+      expect(wf.metadata.maxIre as number).toBeGreaterThan(90);
+    });
+
+    it('waveform: shadow clipping (ACES crushes blacks)', () => {
+      const wf = resolveResults.get('isabella-aces13-rec709')!.get('waveform')!;
+      expect(wf.metadata.clippingShadows).toBe(true);
+    });
+
+    it('vectorscope: wider spread than no-lut (satPeak > 0.25)', () => {
+      const vs = resolveResults.get('isabella-aces13-rec709')!.get('vectorscope')!;
+      expect(vs.metadata.saturationPeak as number).toBeGreaterThan(0.25);
+    });
+
+    it('histogram: fuller distribution (mode in low bins from ACES toe)', () => {
+      const hist = resolveResults.get('isabella-aces13-rec709')!.get('histogram')!;
+      expect(hist.metadata.mode as number).toBeLessThan(10);
+    });
+
+    it('falseColor: dynamic range > 90 IRE', () => {
+      const fc = resolveResults.get('isabella-aces13-rec709')!.get('falseColor')!;
+      expect(fc.metadata.dynamicRangeIre as number).toBeGreaterThan(90);
+    });
+
+    it('parade: higher channel imbalance than no-lut (ACES shifts color)', () => {
+      const paradeAces = resolveResults.get('isabella-aces13-rec709')!.get('rgbParade')!;
+      const paradeNoLut = resolveResults.get('isabella-no-lut')!.get('rgbParade')!;
+      expect(paradeAces.metadata.channelImbalance as number)
+        .toBeGreaterThan(paradeNoLut.metadata.channelImbalance as number);
+    });
+  });
+
+  describe('isabella-aces13-hdr-p3 — targeted assertions', () => {
+    it('waveform: HDR compresses into 8-bit (maxIre < 70)', () => {
+      const wf = resolveResults.get('isabella-aces13-hdr-p3')!.get('waveform')!;
+      expect(wf.metadata.maxIre as number).toBeLessThan(70);
+    });
+
+    it('waveform: shadow clipping (ACES crushes blacks)', () => {
+      const wf = resolveResults.get('isabella-aces13-hdr-p3')!.get('waveform')!;
+      expect(wf.metadata.clippingShadows).toBe(true);
+    });
+
+    it('vectorscope: moderate saturation (between no-lut and rec709)', () => {
+      const vs = resolveResults.get('isabella-aces13-hdr-p3')!.get('vectorscope')!;
+      const satPeak = vs.metadata.saturationPeak as number;
+      expect(satPeak).toBeGreaterThan(0.15);
+      expect(satPeak).toBeLessThan(0.3);
+    });
+
+    it('falseColor: no highlight clipping (HDR maps everything below 90 IRE)', () => {
+      const fc = resolveResults.get('isabella-aces13-hdr-p3')!.get('falseColor')!;
+      expect(fc.metadata.percentAbove90Ire as number).toBe(0);
+    });
+
+    it('falseColor: dynamic range < 70 IRE (compressed)', () => {
+      const fc = resolveResults.get('isabella-aces13-hdr-p3')!.get('falseColor')!;
+      expect(fc.metadata.dynamicRangeIre as number).toBeLessThan(70);
+    });
+  });
+
+  // ── Cross-grade comparison tests ──────────────────────────────────────
+
+  describe('Cross-grade comparison — same source, different pipelines', () => {
+    it('ACES Rec.709 has higher maxIre than no-LUT (tone mapping lifts highlights)', () => {
+      const maxNoLut = resolveResults.get('isabella-no-lut')!.get('waveform')!.metadata.maxIre as number;
+      const maxAces = resolveResults.get('isabella-aces13-rec709')!.get('waveform')!.metadata.maxIre as number;
+      expect(maxAces).toBeGreaterThan(maxNoLut);
+    });
+
+    it('HDR P3 has lower maxIre than Rec.709 (HDR compresses into 8-bit SDR range)', () => {
+      const maxAces = resolveResults.get('isabella-aces13-rec709')!.get('waveform')!.metadata.maxIre as number;
+      const maxHdr = resolveResults.get('isabella-aces13-hdr-p3')!.get('waveform')!.metadata.maxIre as number;
+      expect(maxHdr).toBeLessThan(maxAces);
+    });
+
+    it('ACES Rec.709 has highest saturationPeak (most saturated output)', () => {
+      const satNoLut = resolveResults.get('isabella-no-lut')!.get('vectorscope')!.metadata.saturationPeak as number;
+      const satAces = resolveResults.get('isabella-aces13-rec709')!.get('vectorscope')!.metadata.saturationPeak as number;
+      const satHdr = resolveResults.get('isabella-aces13-hdr-p3')!.get('vectorscope')!.metadata.saturationPeak as number;
+      expect(satAces).toBeGreaterThan(satNoLut);
+      expect(satAces).toBeGreaterThan(satHdr);
+    });
+
+    it('all three grades have skin tones near the I-line (< 20 deg)', () => {
+      for (const name of ['isabella-no-lut', 'isabella-aces13-rec709', 'isabella-aces13-hdr-p3']) {
+        const vs = resolveResults.get(name)!.get('vectorscope')!;
+        expect(vs.metadata.skinToneLineDeviationDegrees as number).toBeLessThan(20);
+      }
+    });
+
+    it('ACES grades have more shadow clipping columns than no-LUT', () => {
+      const colsNoLut = resolveResults.get('isabella-no-lut')!.get('waveform')!.metadata.clippingShadowColumns as number;
+      const colsAces = resolveResults.get('isabella-aces13-rec709')!.get('waveform')!.metadata.clippingShadowColumns as number;
+      const colsHdr = resolveResults.get('isabella-aces13-hdr-p3')!.get('waveform')!.metadata.clippingShadowColumns as number;
+      expect(colsAces).toBeGreaterThan(colsNoLut);
+      expect(colsHdr).toBeGreaterThan(colsNoLut);
+    });
+
+    it('ACES Rec.709 has wider dynamic range than HDR P3 (in 8-bit)', () => {
+      const drAces = resolveResults.get('isabella-aces13-rec709')!.get('falseColor')!.metadata.dynamicRangeIre as number;
+      const drHdr = resolveResults.get('isabella-aces13-hdr-p3')!.get('falseColor')!.metadata.dynamicRangeIre as number;
+      expect(drAces).toBeGreaterThan(drHdr);
+    });
+
+    it('no-LUT has least channel imbalance (closest to neutral)', () => {
+      const ciNoLut = resolveResults.get('isabella-no-lut')!.get('rgbParade')!.metadata.channelImbalance as number;
+      const ciAces = resolveResults.get('isabella-aces13-rec709')!.get('rgbParade')!.metadata.channelImbalance as number;
+      expect(ciNoLut).toBeLessThan(ciAces);
+    });
+  });
+});
