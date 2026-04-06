@@ -61,16 +61,23 @@ function analyzeCpu(
 function buildResult(data: Uint32Array, totalPixels: number): ScopeResult {
   let below16 = 0;
   let above90 = 0;
+  let minBin = 255;
+  let maxBin = 0;
 
   const ire16Bin = Math.round(0.16 * 255);
   const ire90Bin = Math.round(0.90 * 255);
 
   for (let b = 0; b < BINS; b++) {
+    if (data[b] > 0) {
+      if (b < minBin) minBin = b;
+      if (b > maxBin) maxBin = b;
+    }
     if (b <= ire16Bin) below16 += data[b];
     if (b >= ire90Bin) above90 += data[b];
   }
 
   const inRange = totalPixels - below16 - above90;
+  const toIre = (bin: number) => Math.round((bin / 255) * 10000) / 100;
 
   return {
     scopeId: 'falseColor',
@@ -80,6 +87,7 @@ function buildResult(data: Uint32Array, totalPixels: number): ScopeResult {
       percentBelow16Ire: Math.round((below16 / totalPixels) * 10000) / 100,
       percentAbove90Ire: Math.round((above90 / totalPixels) * 10000) / 100,
       percentInRange: Math.round((inRange / totalPixels) * 10000) / 100,
+      dynamicRangeIre: toIre(maxBin) - toIre(minBin),
     },
   };
 }

@@ -473,6 +473,26 @@ describe('Industry Pattern Invariants', () => {
       expect(ire).toBeLessThanOrEqual(50.2);
     });
 
+    it('dynamicRangeIre is 0 for solid color', async () => {
+      const p = createCpuPipeline();
+      for (const scope of allScopes) p.register(scope);
+      const pixels = generateSolidColor(W, H, 128, 128, 128);
+      const results = await p.analyze({ data: pixels, width: W, height: H });
+      const fc = results.get('falseColor')!;
+      expect(fc.metadata.dynamicRangeIre).toBe(0);
+      p.destroy();
+    });
+
+    it('dynamicRangeIre is 100 for full gradient (black to white)', async () => {
+      const p = createCpuPipeline();
+      for (const scope of allScopes) p.register(scope);
+      const pixels = generateHorizontalGradient(W, H);
+      const results = await p.analyze({ data: pixels, width: W, height: H });
+      const fc = results.get('falseColor')!;
+      expect(fc.metadata.dynamicRangeIre).toBe(100);
+      p.destroy();
+    });
+
     it('falseColor percentages sum to 100% for all test patterns', async () => {
       const p = createCpuPipeline();
       for (const scope of allScopes) p.register(scope);
