@@ -18,6 +18,10 @@ REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 
 cd "$REPO_ROOT"
 
+echo "Building packages..."
+pnpm --filter @openscope/core build 2>/dev/null
+pnpm --filter @openscope/shaders build 2>/dev/null
+
 echo "Running conformance suite..."
 TEMP_JSON=$(mktemp /tmp/openscope-test-XXXXXX.json)
 
