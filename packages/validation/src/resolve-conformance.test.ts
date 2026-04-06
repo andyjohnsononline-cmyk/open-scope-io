@@ -355,6 +355,59 @@ describe('Industry Pattern Invariants', () => {
     });
   });
 
+  describe('Waveform IRE precision — Resolve-grade accuracy', () => {
+    it('pure 18% gray (46/255) reports ~18 IRE', async () => {
+      const gray18 = Math.round(0.18 * 255); // = 46
+      const p = createCpuPipeline();
+      for (const scope of allScopes) p.register(scope);
+      const pixels = generateSolidColor(W, H, gray18, gray18, gray18);
+      const results = await p.analyze({ data: pixels, width: W, height: H });
+      const wf = results.get('waveform')!;
+      const meanIre = wf.metadata.meanIre as number;
+      expect(meanIre).toBeGreaterThan(17);
+      expect(meanIre).toBeLessThan(19);
+      p.destroy();
+    });
+
+    it('pure black reports exactly 0 IRE', async () => {
+      const p = createCpuPipeline();
+      for (const scope of allScopes) p.register(scope);
+      const pixels = generateSolidColor(W, H, 0, 0, 0);
+      const results = await p.analyze({ data: pixels, width: W, height: H });
+      const wf = results.get('waveform')!;
+      expect(wf.metadata.minIre).toBe(0);
+      expect(wf.metadata.maxIre).toBe(0);
+      expect(wf.metadata.meanIre).toBe(0);
+      p.destroy();
+    });
+
+    it('pure white reports exactly 100 IRE', async () => {
+      const p = createCpuPipeline();
+      for (const scope of allScopes) p.register(scope);
+      const pixels = generateSolidColor(W, H, 255, 255, 255);
+      const results = await p.analyze({ data: pixels, width: W, height: H });
+      const wf = results.get('waveform')!;
+      expect(wf.metadata.minIre).toBe(100);
+      expect(wf.metadata.maxIre).toBe(100);
+      expect(wf.metadata.meanIre).toBe(100);
+      p.destroy();
+    });
+  });
+
+  describe('Vectorscope skin tone line — Resolve I-line validation', () => {
+    it('skin tone patches cluster near the skin tone line (< 20 deg deviation)', async () => {
+      const p = createCpuPipeline();
+      for (const scope of allScopes) p.register(scope);
+      const pixels = generateSkinToneTarget(W, H);
+      const results = await p.analyze({ data: pixels, width: W, height: H });
+      const vs = results.get('vectorscope')!;
+      const skinDev = vs.metadata.skinToneLineDeviationDegrees as number;
+      expect(skinDev).toBeLessThan(20);
+      expect(skinDev).toBeGreaterThan(0);
+      p.destroy();
+    });
+  });
+
   describe('Vectorscope color target positions — Resolve calibration', () => {
     it('100% primaries/secondaries land in correct vectorscope quadrants', async () => {
       const p = createCpuPipeline();
