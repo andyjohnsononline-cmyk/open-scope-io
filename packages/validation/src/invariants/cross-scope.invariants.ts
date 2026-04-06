@@ -18,37 +18,23 @@ export function checkCrossScopeInvariants(
   const waveformResult = results.get('waveform');
   const parade = results.get('rgbParade');
 
-  // Histogram luma bins present → waveform must contain those luma values
+  // Histogram luma total per bin must match waveform total per bin
   if (histogram && waveformResult) {
     const lumaOffset = 3 * BINS;
-    const histogramLumaBins = new Set<number>();
+
     for (let b = 0; b < BINS; b++) {
-      if (histogram.data[lumaOffset + b] > 0) {
-        histogramLumaBins.add(b);
+      const histCount = histogram.data[lumaOffset + b];
+      let wfCount = 0;
+      for (let x = 0; x < width; x++) {
+        wfCount += waveformResult.data[x * BINS + b];
       }
-    }
-
-    const waveformLumaBins = new Set<number>();
-    for (let x = 0; x < width; x++) {
-      for (let b = 0; b < BINS; b++) {
-        if (waveformResult.data[x * BINS + b] > 0) {
-          waveformLumaBins.add(b);
-        }
-      }
-    }
-
-    for (const bin of histogramLumaBins) {
-      // Allow ±1 tolerance for rounding
-      const found =
-        waveformLumaBins.has(bin) ||
-        waveformLumaBins.has(bin - 1) ||
-        waveformLumaBins.has(bin + 1);
-      if (!found) {
+      if (histCount !== wfCount) {
         violations.push({
-          invariant: 'histogram_waveform_luma_superset',
-          expected: `waveform contains luma bin ${bin} (±1)`,
-          actual: `luma bin ${bin} present in histogram but absent in waveform`,
+          invariant: `histogram_waveform_luma_bin_${b}_total`,
+          expected: `histogram luma bin[${b}] total = waveform bin[${b}] total`,
+          actual: `histogram = ${histCount}, waveform = ${wfCount}`,
         });
+        break;
       }
     }
   }
