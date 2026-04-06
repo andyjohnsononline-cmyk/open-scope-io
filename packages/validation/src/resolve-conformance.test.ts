@@ -355,6 +355,71 @@ describe('Industry Pattern Invariants', () => {
     });
   });
 
+  describe('Vectorscope color target positions — Resolve calibration', () => {
+    it('100% primaries/secondaries land in correct vectorscope quadrants', async () => {
+      const p = createCpuPipeline();
+      for (const scope of allScopes) p.register(scope);
+
+      const targets: { label: string; r: number; g: number; b: number; expectedCbSign: number; expectedCrSign: number }[] = [
+        { label: 'Red',     r: 255, g: 0,   b: 0,   expectedCbSign: -1, expectedCrSign: 1 },
+        { label: 'Green',   r: 0,   g: 255, b: 0,   expectedCbSign: -1, expectedCrSign: -1 },
+        { label: 'Blue',    r: 0,   g: 0,   b: 255, expectedCbSign: 1,  expectedCrSign: -1 },
+        { label: 'Yellow',  r: 255, g: 255, b: 0,   expectedCbSign: -1, expectedCrSign: 1 },
+        { label: 'Magenta', r: 255, g: 0,   b: 255, expectedCbSign: 1,  expectedCrSign: 1 },
+        { label: 'Cyan',    r: 0,   g: 255, b: 255, expectedCbSign: 1,  expectedCrSign: -1 },
+      ];
+
+      for (const t of targets) {
+        const pixels = generateSolidColor(4, 4, t.r, t.g, t.b);
+        const results = await p.analyze({ data: pixels, width: 4, height: 4 });
+        const vs = results.get('vectorscope')!;
+
+        let peakX = 0, peakY = 0, peakCount = 0;
+        for (let cy = 0; cy < 512; cy++) {
+          for (let cx = 0; cx < 512; cx++) {
+            if (vs.data[cy * 512 + cx] > peakCount) {
+              peakCount = vs.data[cy * 512 + cx];
+              peakX = cx;
+              peakY = cy;
+            }
+          }
+        }
+
+        const cb = (peakX / 511) - 0.5;
+        const cr = (peakY / 511) - 0.5;
+
+        if (t.expectedCbSign > 0) {
+          expect(cb).toBeGreaterThan(0);
+        } else {
+          expect(cb).toBeLessThan(0);
+        }
+
+        if (t.expectedCrSign > 0) {
+          expect(cr).toBeGreaterThan(0);
+        } else {
+          expect(cr).toBeLessThan(0);
+        }
+      }
+
+      p.destroy();
+    });
+
+    it('neutral gray lands at vectorscope center (255, 255)', async () => {
+      const p = createCpuPipeline();
+      for (const scope of allScopes) p.register(scope);
+
+      const pixels = generateSolidColor(4, 4, 128, 128, 128);
+      const results = await p.analyze({ data: pixels, width: 4, height: 4 });
+      const vs = results.get('vectorscope')!;
+
+      const centerX = Math.round(0.5 * 511);
+      const centerY = Math.round(0.5 * 511);
+      expect(vs.data[centerY * 512 + centerX]).toBe(16);
+
+      p.destroy();
+    });
+  });
+
   describe('Luma bin consistency across scopes', () => {
     it('waveform, histogram, and falseColor agree on luma bin assignment for single-pixel images', () => {
       const testColors: [number, number, number][] = [
