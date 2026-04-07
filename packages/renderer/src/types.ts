@@ -9,6 +9,12 @@ export interface RenderOptions {
   sourcePixels?: Uint8ClampedArray;
   sourceWidth?: number;
   sourceHeight?: number;
+  /** Y axis scale for waveform/parade (default: 'linear') */
+  yAxisScale?: 'linear' | 'log';
+  /** Waveform trace mode: luma (single trace) or rgb (3 overlapping channel traces) */
+  mode?: 'luma' | 'rgb';
+  /** Histogram layout: overlaid channels or stacked rows (default: 'overlaid') */
+  layout?: 'overlaid' | 'stacked';
 }
 
 export type ScopeRenderFn = (

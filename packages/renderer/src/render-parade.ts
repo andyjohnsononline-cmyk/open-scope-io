@@ -1,6 +1,16 @@
 import type { ScopeResult } from '@openscope/core';
 import { parseHexColor, type RenderOptions } from './types.js';
 
+function logPosToBin(pos: number, bins: number): number {
+  if (pos <= 0) return 0;
+  return Math.floor(Math.pow(bins, pos) - 1);
+}
+
+function binToLogPos(bin: number, bins: number): number {
+  if (bin <= 0) return 0;
+  return Math.log(bin + 1) / Math.log(bins);
+}
+
 export function renderParade(
   ctx: CanvasRenderingContext2D,
   result: ScopeResult,
@@ -8,6 +18,7 @@ export function renderParade(
 ): void {
   const { width, height } = ctx.canvas;
   const bg = options?.background ?? '#111';
+  const yScale = options?.yAxisScale ?? 'linear';
 
   const bins = 256;
   const totalCols = result.shape[0];
@@ -17,9 +28,9 @@ export function renderParade(
 
   const channelWidth = Math.floor(width / 3);
   const colors = [
-    [255, 60, 60],   // Red
-    [60, 255, 60],   // Green
-    [60, 100, 255],  // Blue
+    [255, 60, 60],
+    [60, 255, 60],
+    [60, 100, 255],
   ];
 
   const imageData = ctx.createImageData(width, height);
@@ -37,7 +48,6 @@ export function renderParade(
     const dataOffset = ch * stride;
     const [cr, cg, cb] = colors[ch];
 
-    // Find max per column for this channel
     const colMax = new Float64Array(channelCols);
     for (let x = 0; x < channelCols; x++) {
       for (let b = 0; b < bins; b++) {
@@ -52,7 +62,12 @@ export function renderParade(
       if (maxVal === 0) continue;
 
       for (let py = 0; py < height; py++) {
-        const bin = Math.floor(((height - 1 - py) / Math.max(height - 1, 1)) * (bins - 1));
+        const normY = (height - 1 - py) / Math.max(height - 1, 1);
+        const bin = yScale === 'log'
+          ? logPosToBin(normY, bins)
+          : Math.floor(normY * (bins - 1));
+        if (bin < 0 || bin >= bins) continue;
+
         const count = data[dataOffset + srcCol * bins + bin];
         if (count === 0) continue;
 
@@ -63,7 +78,6 @@ export function renderParade(
         pixels[i] = Math.round(bgR + (cr - bgR) * t);
         pixels[i + 1] = Math.round(bgG + (cg - bgG) * t);
         pixels[i + 2] = Math.round(bgB + (cb - bgB) * t);
-        pixels[i + 3] = 255;
       }
     }
   }
@@ -80,4 +94,45 @@ export function renderParade(
     ctx.lineTo(x, height);
     ctx.stroke();
   }
+
+  drawGraticule(ctx, width, height, yScale, bins);
+}
+
+function drawGraticule(
+  ctx: CanvasRenderingContext2D,
+  w: number,
+  h: number,
+  yScale: 'linear' | 'log',
+  bins: number,
+): void {
+  ctx.strokeStyle = 'rgba(255, 255, 255, 0.15)';
+  ctx.lineWidth = 1;
+  ctx.setLineDash([4, 4]);
+  ctx.font = '10px monospace';
+  ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
+
+  if (yScale === 'log') {
+    const logLevels = [0, 1, 2, 4, 8, 16, 32, 64, 128, 255];
+    for (const cv of logLevels) {
+      const pos = cv === 0 ? 0 : binToLogPos(cv, bins);
+      const y = Math.round(h - pos * h);
+      ctx.beginPath();
+      ctx.moveTo(0, y);
+      ctx.lineTo(w, y);
+      ctx.stroke();
+      ctx.fillText(`${cv}`, 4, y - 2);
+    }
+  } else {
+    const levels = [0, 25, 50, 75, 100];
+    for (const ire of levels) {
+      const y = Math.round(h - (ire / 100) * h);
+      ctx.beginPath();
+      ctx.moveTo(0, y);
+      ctx.lineTo(w, y);
+      ctx.stroke();
+      ctx.fillText(`${ire}`, 4, y - 2);
+    }
+  }
+
+  ctx.setLineDash([]);
 }

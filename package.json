@@ -9,6 +9,7 @@
     "prepare:goldens": "tsx scripts/autoresearch/prepare.ts"
   },
   "devDependencies": {
+    "@napi-rs/canvas": "^0.1.97",
     "@webgpu/types": "^0.1.0",
     "sharp": "^0.33.5",
     "tsup": "^8.0.0",
@@ -21,6 +22,7 @@
   },
   "pnpm": {
     "onlyBuiltDependencies": [
+      "@napi-rs/canvas",
       "esbuild",
       "sharp"
     ]

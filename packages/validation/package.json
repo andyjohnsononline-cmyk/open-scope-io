@@ -9,6 +9,7 @@
   },
   "dependencies": {
     "@openscope/core": "workspace:*",
+    "@openscope/renderer": "workspace:*",
     "@openscope/shaders": "workspace:*"
   },
   "license": "MIT"
