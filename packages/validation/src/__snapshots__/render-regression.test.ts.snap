@@ -1,0 +1,19 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`rendering regression > false color renders consistently 1`] = `"5a60f26499519537"`;
+
+exports[`rendering regression > histogram overlaid renders consistently 1`] = `"4e17a416f1600683"`;
+
+exports[`rendering regression > histogram stacked renders consistently 1`] = `"deb78dd60ab92b70"`;
+
+exports[`rendering regression > parade linear renders consistently 1`] = `"854fbf592677f7e0"`;
+
+exports[`rendering regression > parade log renders consistently 1`] = `"eb3dce985454d491"`;
+
+exports[`rendering regression > vectorscope renders consistently 1`] = `"7b025ea121ffe5ae"`;
+
+exports[`rendering regression > waveform linear renders consistently 1`] = `"ae0f47d8088e2cde"`;
+
+exports[`rendering regression > waveform log renders consistently 1`] = `"d3b1b763a8f94f6d"`;
+
+exports[`rendering regression > waveform rgb renders consistently 1`] = `"359c0e8cacb9b3a1"`;
