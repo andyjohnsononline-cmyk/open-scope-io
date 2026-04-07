@@ -326,32 +326,6 @@ function renderResults(
   const baseOpts = { sourcePixels: imageData.data, sourceWidth: w, sourceHeight: h };
   const opts = buildRenderOptions(baseOpts);
 
-  // #region agent log
-  const _logOnce = (renderResults as any)._logged;
-  if (!_logOnce) {
-    (renderResults as any)._logged = true;
-    const dpr = devicePixelRatio || 1;
-    const panelData: Record<string, any> = {};
-    for (const id of SCOPE_IDS) {
-      const canvas = document.getElementById(`canvas-${id}`) as HTMLCanvasElement;
-      const overlay = document.getElementById(`overlay-${id}`) as HTMLCanvasElement;
-      const parent = canvas?.parentElement;
-      const parentRect = parent?.getBoundingClientRect();
-      panelData[id] = {
-        canvasW: canvas?.width, canvasH: canvas?.height,
-        parentW: parentRect?.width, parentH: parentRect?.height,
-        parentAR: parentRect ? (parentRect.width / parentRect.height).toFixed(3) : null,
-        overlayW: overlay?.width, overlayH: overlay?.height,
-      };
-    }
-    const srcPanel = document.querySelector('.source-panel') as HTMLElement;
-    const srcRect = srcPanel?.getBoundingClientRect();
-    const imgStyle = window.getComputedStyle(imageCanvas);
-    const vidStyle = window.getComputedStyle(video);
-    fetch('http://127.0.0.1:7938/ingest/69a10359-cc6b-4ea1-a7e8-fea8f802754f',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'857586'},body:JSON.stringify({sessionId:'857586',location:'main.ts:renderResults',message:'Panel and canvas dimensions',data:{dpr,sourceW:w,sourceH:h,sourceAR:(w/h).toFixed(3),srcPanelW:srcRect?.width,srcPanelH:srcRect?.height,imgCanvasW:imageCanvas.width,imgCanvasH:imageCanvas.height,imgDisplay:imageCanvas.style.display,imgObjFit:imgStyle.objectFit,vidDisplay:video.style.display,vidObjFit:vidStyle.objectFit,panels:panelData},timestamp:Date.now(),hypothesisId:'H1-H5'})}).catch(()=>{});
-  }
-  // #endregion
-
   if (useWebGL && glRenderer) {
     if (waveformMode === 'rgb') {
       const paradeResult = results.get('rgbParade');

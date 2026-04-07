@@ -54,14 +54,6 @@ export function renderWaveformGL(
   const [dataCols, bins] = result.shape;
   const data = result.data;
 
-  // #region agent log
-  const _wfLogged = (renderWaveformGL as any)._logged;
-  if (!_wfLogged) {
-    (renderWaveformGL as any)._logged = true;
-    fetch('http://127.0.0.1:7938/ingest/69a10359-cc6b-4ea1-a7e8-fea8f802754f',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'857586'},body:JSON.stringify({sessionId:'857586',location:'render-waveform-gl.ts',message:'Waveform viewport',data:{viewport,dataCols,bins,dataLen:data.length,mode,vpAR:(vw/vh).toFixed(3),pipelineW:pipeline.width,pipelineH:pipeline.height},timestamp:Date.now(),hypothesisId:'H3-H4'})}).catch(()=>{});
-  }
-  // #endregion
-
   if (mode === 'rgb') {
     const channelCols = dataCols / 3;
     const stride = channelCols * bins;

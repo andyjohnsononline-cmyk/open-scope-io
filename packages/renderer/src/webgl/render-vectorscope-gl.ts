@@ -67,14 +67,6 @@ export function renderVectorscopeGL(
   const sqY = vy + Math.floor((vh - squareSize) / 2);
   const squareViewport: [number, number, number, number] = [sqX, sqY, squareSize, squareSize];
 
-  // #region agent log
-  const _vsLogged = (renderVectorscopeGL as any)._logged;
-  if (!_vsLogged) {
-    (renderVectorscopeGL as any)._logged = true;
-    fetch('http://127.0.0.1:7938/ingest/69a10359-cc6b-4ea1-a7e8-fea8f802754f',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'857586'},body:JSON.stringify({sessionId:'857586',location:'render-vectorscope-gl.ts',message:'Vectorscope viewport',data:{fullVP:[vx,vy,vw,vh],squareVP:[sqX,sqY,squareSize,squareSize],gridW,gridH,fullAR:(vw/vh).toFixed(3)},timestamp:Date.now(),hypothesisId:'H3'})}).catch(()=>{});
-  }
-  // #endregion
-
   let maxVal = 0;
   for (let i = 0; i < data.length; i++) {
     if (data[i] > maxVal) maxVal = data[i];
