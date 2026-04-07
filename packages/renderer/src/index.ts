@@ -10,5 +10,9 @@ export type {
   RenderOptions,
   ScopeRenderFn,
   ScopeAppearance,
+  WaveformScaleStyle,
+  LevelMode,
+  VectorscopeStyle,
+  VectorscopeTargets,
 } from './types.js';
 export type { WaveformMode } from './webgl/webgl-scope-renderer.js';

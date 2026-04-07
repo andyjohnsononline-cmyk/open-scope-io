@@ -1,5 +1,5 @@
 import type { ScopeResult } from '@openscope/core';
-import type { ScopeAppearance } from '../types.js';
+import type { ScopeAppearance, RenderOptions } from '../types.js';
 import { parseHexColor } from '../types.js';
 import type { PipelineResources } from './gl-pipeline.js';
 import type { GraticuleResources } from './gl-graticules.js';
@@ -16,6 +16,8 @@ export interface WaveformGLState {
   gratLines: Float32Array | null;
   lastWidth: number;
   lastHeight: number;
+  lastScale: string;
+  lastLevel: string;
 }
 
 export function createWaveformGLState(): WaveformGLState {
@@ -24,6 +26,8 @@ export function createWaveformGLState(): WaveformGLState {
     gratLines: null,
     lastWidth: 0,
     lastHeight: 0,
+    lastScale: '',
+    lastLevel: '',
   };
 }
 
@@ -44,10 +48,19 @@ export function renderWaveformGL(
   viewport: [number, number, number, number],
   overlayCtx: CanvasRenderingContext2D | null,
   mode: 'luma' | 'rgb' = 'luma',
+  options?: RenderOptions,
 ): void {
   const [, , vw, vh] = viewport;
   const [dataCols, bins] = result.shape;
   const data = result.data;
+
+  // #region agent log
+  const _wfLogged = (renderWaveformGL as any)._logged;
+  if (!_wfLogged) {
+    (renderWaveformGL as any)._logged = true;
+    fetch('http://127.0.0.1:7938/ingest/69a10359-cc6b-4ea1-a7e8-fea8f802754f',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'857586'},body:JSON.stringify({sessionId:'857586',location:'render-waveform-gl.ts',message:'Waveform viewport',data:{viewport,dataCols,bins,dataLen:data.length,mode,vpAR:(vw/vh).toFixed(3),pipelineW:pipeline.width,pipelineH:pipeline.height},timestamp:Date.now(),hypothesisId:'H3-H4'})}).catch(()=>{});
+  }
+  // #endregion
 
   if (mode === 'rgb') {
     const channelCols = dataCols / 3;
@@ -114,18 +127,23 @@ export function renderWaveformGL(
     }
   }
 
-  // Graticule lines
-  if (state.lastWidth !== vw || state.lastHeight !== vh) {
-    state.gratLines = waveformGraticuleLines(vw, vh);
+  const wfScale = options?.waveformScale ?? 'percentage';
+  const lvlMode = options?.levelMode ?? 'data';
+  const needsRebuild = state.lastWidth !== vw || state.lastHeight !== vh
+    || state.lastScale !== wfScale || state.lastLevel !== lvlMode;
+
+  if (needsRebuild) {
+    state.gratLines = waveformGraticuleLines(vw, vh, options);
     state.lastWidth = vw;
     state.lastHeight = vh;
+    state.lastScale = wfScale;
+    state.lastLevel = lvlMode;
   }
   if (state.gratLines) {
     drawGraticuleLines(gl, graticule, state.gratLines, vw, vh, appearance);
   }
 
-  // Text labels on 2D overlay
   if (overlayCtx) {
-    drawGraticuleLabels(overlayCtx, 'waveform', vw, vh, appearance);
+    drawGraticuleLabels(overlayCtx, 'waveform', vw, vh, appearance, options);
   }
 }

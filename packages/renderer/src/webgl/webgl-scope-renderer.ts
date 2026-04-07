@@ -203,7 +203,7 @@ export class WebGlScopeRenderer {
         renderWaveformGL(
           gl, pipeline, graticule, ctx.waveformState,
           result, appearance, viewport, overlayCtx,
-          this._waveformMode,
+          this._waveformMode, options,
         );
         break;
 
@@ -211,6 +211,7 @@ export class WebGlScopeRenderer {
         renderParadeGL(
           gl, pipeline, graticule, ctx.paradeState,
           result, appearance, viewport, overlayCtx,
+          options,
         );
         break;
 
@@ -218,6 +219,7 @@ export class WebGlScopeRenderer {
         renderVectorscopeGL(
           gl, pipeline, graticule, ctx.vectorscopeState,
           result, appearance, viewport, overlayCtx,
+          options,
         );
         break;
 

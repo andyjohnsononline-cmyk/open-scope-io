@@ -1,5 +1,5 @@
 import type { ScopeResult } from '@openscope/core';
-import type { ScopeAppearance } from '../types.js';
+import type { ScopeAppearance, RenderOptions } from '../types.js';
 import type { PipelineResources } from './gl-pipeline.js';
 import type { GraticuleResources } from './gl-graticules.js';
 import { uploadR32UI, uploadR32F, transposeColumnMajor } from './gl-textures.js';
@@ -15,6 +15,8 @@ export interface ParadeGLState {
   gratLines: Float32Array | null;
   lastWidth: number;
   lastHeight: number;
+  lastScale: string;
+  lastLevel: string;
 }
 
 export function createParadeGLState(): ParadeGLState {
@@ -23,6 +25,8 @@ export function createParadeGLState(): ParadeGLState {
     gratLines: null,
     lastWidth: 0,
     lastHeight: 0,
+    lastScale: '',
+    lastLevel: '',
   };
 }
 
@@ -41,6 +45,7 @@ export function renderParadeGL(
   appearance: ScopeAppearance,
   viewport: [number, number, number, number],
   overlayCtx: CanvasRenderingContext2D | null,
+  options?: RenderOptions,
 ): void {
   const [vx, vy, vw, vh] = viewport;
   const [totalCols, bins] = result.shape;
@@ -91,17 +96,23 @@ export function renderParadeGL(
   ]);
   drawGraticuleLines(gl, graticule, sepLines, vw, vh, appearance);
 
-  // IRE graticule for each channel
-  if (state.lastWidth !== vw || state.lastHeight !== vh) {
-    state.gratLines = waveformGraticuleLines(vw, vh);
+  const wfScale = options?.waveformScale ?? 'percentage';
+  const lvlMode = options?.levelMode ?? 'data';
+  const needsRebuild = state.lastWidth !== vw || state.lastHeight !== vh
+    || state.lastScale !== wfScale || state.lastLevel !== lvlMode;
+
+  if (needsRebuild) {
+    state.gratLines = waveformGraticuleLines(vw, vh, options);
     state.lastWidth = vw;
     state.lastHeight = vh;
+    state.lastScale = wfScale;
+    state.lastLevel = lvlMode;
   }
   if (state.gratLines) {
     drawGraticuleLines(gl, graticule, state.gratLines, vw, vh, appearance);
   }
 
   if (overlayCtx) {
-    drawGraticuleLabels(overlayCtx, 'rgbParade', vw, vh, appearance);
+    drawGraticuleLabels(overlayCtx, 'rgbParade', vw, vh, appearance, options);
   }
 }

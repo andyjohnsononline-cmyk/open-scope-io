@@ -20,6 +20,34 @@
     <button id="webcamBtn">Webcam</button>
     <button id="pauseBtn" disabled>Pause</button>
     <button id="waveformModeBtn">Waveform: Luma</button>
+    <div class="control-separator"></div>
+    <select id="waveformScaleSelect" title="Waveform Scale Style">
+      <option value="percentage" selected>Percentage</option>
+      <option value="10-bit">10-bit</option>
+      <option value="12-bit">12-bit</option>
+      <option value="mv">mV</option>
+      <option value="hdr">HDR (ST.2084/HLG)</option>
+    </select>
+    <select id="levelModeSelect" title="Level Mode">
+      <option value="data" selected>Data Level</option>
+      <option value="video">Video Level</option>
+    </select>
+    <div class="control-separator"></div>
+    <select id="vecStyleSelect" title="Vectorscope Scale Style">
+      <option value="standard" selected>Standard</option>
+      <option value="simplified">Simplified</option>
+      <option value="hue-vectors">Hue Vectors</option>
+      <option value="off">Off</option>
+    </select>
+    <select id="vecTargetsSelect" title="Vectorscope Targets">
+      <option value="75" selected>75% Targets</option>
+      <option value="100">100% Targets</option>
+      <option value="75+100">75%+100% Targets</option>
+    </select>
+    <label class="checkbox-label" title="Show Labels">
+      <input type="checkbox" id="showLabelsCheck" checked />
+      Labels
+    </label>
     <span id="status">No source loaded</span>
   </div>
 

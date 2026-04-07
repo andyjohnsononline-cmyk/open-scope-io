@@ -1,5 +1,10 @@
 import type { ScopeResult } from '@openscope/core';
-import { parseHexColor, type RenderOptions } from './types.js';
+import {
+  parseHexColor,
+  type RenderOptions,
+  type WaveformScaleStyle,
+  type LevelMode,
+} from './types.js';
 
 function logPosToBin(pos: number, bins: number): number {
   if (pos <= 0) return 0;
@@ -95,7 +100,7 @@ export function renderParade(
     ctx.stroke();
   }
 
-  drawGraticule(ctx, width, height, yScale, bins);
+  drawGraticule(ctx, width, height, yScale, bins, options);
 }
 
 function drawGraticule(
@@ -104,12 +109,15 @@ function drawGraticule(
   h: number,
   yScale: 'linear' | 'log',
   bins: number,
+  options?: RenderOptions,
 ): void {
   ctx.strokeStyle = 'rgba(255, 255, 255, 0.15)';
   ctx.lineWidth = 1;
   ctx.setLineDash([4, 4]);
   ctx.font = '10px monospace';
   ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
+
+  const showLabels = options?.showLabels ?? true;
 
   if (yScale === 'log') {
     const logLevels = [0, 1, 2, 4, 8, 16, 32, 64, 128, 255];
@@ -120,19 +128,61 @@ function drawGraticule(
       ctx.moveTo(0, y);
       ctx.lineTo(w, y);
       ctx.stroke();
-      ctx.fillText(`${cv}`, 4, y - 2);
+      if (showLabels) ctx.fillText(`${cv}`, 4, y - 2);
     }
   } else {
-    const levels = [0, 25, 50, 75, 100];
-    for (const ire of levels) {
-      const y = Math.round(h - (ire / 100) * h);
+    const entries = getParadeGratEntries(options);
+    for (const { pos, text } of entries) {
+      const y = Math.round(h - pos * h);
       ctx.beginPath();
       ctx.moveTo(0, y);
       ctx.lineTo(w, y);
       ctx.stroke();
-      ctx.fillText(`${ire}`, 4, y - 2);
+      if (showLabels) ctx.fillText(text, 4, y - 2);
     }
   }
 
   ctx.setLineDash([]);
+}
+
+function getParadeGratEntries(
+  options?: RenderOptions,
+): Array<{ pos: number; text: string }> {
+  const scale: WaveformScaleStyle = options?.waveformScale ?? 'percentage';
+  const level: LevelMode = options?.levelMode ?? 'data';
+
+  if (scale === 'hdr') {
+    return [
+      { pos: 0, text: '0' },
+      { pos: 0.1, text: '1' },
+      { pos: 0.25, text: '10' },
+      { pos: 0.5, text: '100' },
+      { pos: 0.75, text: '1000' },
+      { pos: 1.0, text: '10000' },
+    ];
+  }
+
+  const dataPos = [0, 0.25, 0.5, 0.75, 1.0];
+  const videoPos = [16 / 255, 0.25, 0.5, 0.75, 235 / 255];
+  const positions = level === 'video' ? videoPos : dataPos;
+
+  switch (scale) {
+    case 'percentage': {
+      const fmt = (p: number) => {
+        const pct = level === 'video'
+          ? ((p * 255 - 16) / (235 - 16)) * 100
+          : p * 100;
+        return `${Math.round(pct)}%`;
+      };
+      return positions.map(p => ({ pos: p, text: fmt(p) }));
+    }
+    case '10-bit':
+      return positions.map(p => ({ pos: p, text: `${Math.round(p * 1023)}` }));
+    case '12-bit':
+      return positions.map(p => ({ pos: p, text: `${Math.round(p * 4095)}` }));
+    case 'mv':
+      return positions.map(p => ({ pos: p, text: `${Math.round(p * 700)}` }));
+    default:
+      return positions.map(p => ({ pos: p, text: `${Math.round(p * 100)}` }));
+  }
 }

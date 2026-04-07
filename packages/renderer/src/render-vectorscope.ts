@@ -1,5 +1,28 @@
 import type { ScopeResult } from '@openscope/core';
-import { parseHexColor, type RenderOptions } from './types.js';
+import {
+  parseHexColor,
+  type RenderOptions,
+  type VectorscopeStyle,
+  type VectorscopeTargets,
+} from './types.js';
+
+const TARGETS_75 = [
+  { label: 'R', angle: 103, dist: 0.63 },
+  { label: 'G', angle: 241, dist: 0.56 },
+  { label: 'B', angle: 347, dist: 0.59 },
+  { label: 'Yl', angle: 167, dist: 0.44 },
+  { label: 'Cy', angle: 283, dist: 0.47 },
+  { label: 'Mg', angle: 61, dist: 0.59 },
+];
+
+const TARGETS_100 = [
+  { label: 'R', angle: 103, dist: 0.84 },
+  { label: 'G', angle: 241, dist: 0.75 },
+  { label: 'B', angle: 347, dist: 0.79 },
+  { label: 'Yl', angle: 167, dist: 0.59 },
+  { label: 'Cy', angle: 283, dist: 0.63 },
+  { label: 'Mg', angle: 61, dist: 0.79 },
+];
 
 export function renderVectorscope(
   ctx: CanvasRenderingContext2D,
@@ -34,7 +57,7 @@ export function renderVectorscope(
 
   if (maxCount === 0) {
     ctx.putImageData(imageData, 0, 0);
-    drawOverlay(ctx, cx, cy, radius);
+    drawOverlay(ctx, cx, cy, radius, options);
     return;
   }
 
@@ -76,7 +99,7 @@ export function renderVectorscope(
   }
 
   ctx.putImageData(imageData, 0, 0);
-  drawOverlay(ctx, cx, cy, radius);
+  drawOverlay(ctx, cx, cy, radius, options);
 }
 
 function drawOverlay(
@@ -84,21 +107,24 @@ function drawOverlay(
   cx: number,
   cy: number,
   radius: number,
+  options?: RenderOptions,
 ): void {
-  // Outer circle
+  const style: VectorscopeStyle = options?.vectorscopeStyle ?? 'standard';
+  if (style === 'off') return;
+
+  const targetsMode: VectorscopeTargets = options?.vectorscopeTargets ?? '75';
+  const showLabels = options?.showLabels ?? true;
+
   ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
   ctx.lineWidth = 1;
+
+  // Outer circle (all visible styles)
   ctx.beginPath();
   ctx.arc(cx, cy, radius, 0, Math.PI * 2);
   ctx.stroke();
 
-  // 75% circle
-  ctx.setLineDash([4, 4]);
-  ctx.beginPath();
-  ctx.arc(cx, cy, radius * 0.75, 0, Math.PI * 2);
-  ctx.stroke();
-
   // Crosshairs
+  ctx.setLineDash([4, 4]);
   ctx.beginPath();
   ctx.moveTo(cx - radius, cy);
   ctx.lineTo(cx + radius, cy);
@@ -107,39 +133,78 @@ function drawOverlay(
   ctx.stroke();
   ctx.setLineDash([]);
 
-  // Skin tone line (≈ 123° from positive Cb axis)
-  const skinAngle = (123 * Math.PI) / 180;
-  ctx.strokeStyle = 'rgba(255, 200, 150, 0.3)';
-  ctx.lineWidth = 2;
-  ctx.beginPath();
-  ctx.moveTo(cx, cy);
-  ctx.lineTo(
-    cx + Math.cos(skinAngle) * radius,
-    cy - Math.sin(skinAngle) * radius,
-  );
-  ctx.stroke();
+  if (style === 'standard' || style === 'hue-vectors') {
+    // 75% circle when targets include 75%
+    if (targetsMode === '75' || targetsMode === '75+100') {
+      ctx.setLineDash([4, 4]);
+      ctx.beginPath();
+      ctx.arc(cx, cy, radius * 0.75, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.setLineDash([]);
+    }
+  }
 
-  // Primary color target boxes
-  const targets = [
-    { label: 'R', angle: 103, dist: 0.63 },
-    { label: 'G', angle: 241, dist: 0.56 },
-    { label: 'B', angle: 347, dist: 0.59 },
-    { label: 'Yl', angle: 167, dist: 0.44 },
-    { label: 'Cy', angle: 283, dist: 0.47 },
-    { label: 'Mg', angle: 61, dist: 0.59 },
-  ];
+  if (style === 'standard' || style === 'hue-vectors') {
+    // Skin tone line
+    const skinAngle = (123 * Math.PI) / 180;
+    ctx.strokeStyle = 'rgba(255, 200, 150, 0.3)';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(cx, cy);
+    ctx.lineTo(
+      cx + Math.cos(skinAngle) * radius,
+      cy - Math.sin(skinAngle) * radius,
+    );
+    ctx.stroke();
+  }
 
-  ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
-  ctx.font = '9px monospace';
-  ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
-  ctx.lineWidth = 1;
+  if (style === 'hue-vectors') {
+    const allTargets = targetsMode === '75' ? TARGETS_75
+      : targetsMode === '100' ? TARGETS_100
+      : TARGETS_100;
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.15)';
+    ctx.lineWidth = 1;
+    for (const t of allTargets) {
+      const a = (t.angle * Math.PI) / 180;
+      ctx.beginPath();
+      ctx.moveTo(cx, cy);
+      ctx.lineTo(cx + Math.cos(a) * radius, cy - Math.sin(a) * radius);
+      ctx.stroke();
+    }
+  }
 
-  for (const t of targets) {
-    const a = (t.angle * Math.PI) / 180;
-    const x = cx + Math.cos(a) * radius * t.dist;
-    const y = cy - Math.sin(a) * radius * t.dist;
-    ctx.strokeRect(x - 4, y - 4, 8, 8);
-    ctx.fillText(t.label, x + 6, y + 3);
+  // Target boxes (standard and hue-vectors only)
+  if (style !== 'simplified') {
+    const targetSets: Array<typeof TARGETS_75> = [];
+    if (targetsMode === '75' || targetsMode === '75+100') targetSets.push(TARGETS_75);
+    if (targetsMode === '100' || targetsMode === '75+100') targetSets.push(TARGETS_100);
+
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
+    ctx.lineWidth = 1;
+
+    for (const set of targetSets) {
+      for (const t of set) {
+        const a = (t.angle * Math.PI) / 180;
+        const x = cx + Math.cos(a) * radius * t.dist;
+        const y = cy - Math.sin(a) * radius * t.dist;
+        ctx.strokeRect(x - 4, y - 4, 8, 8);
+      }
+    }
+
+    // Labels on outermost target set
+    if (showLabels) {
+      const outerTargets = targetsMode === '100' ? TARGETS_100
+        : targetsMode === '75+100' ? TARGETS_100
+        : TARGETS_75;
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
+      ctx.font = '9px monospace';
+      for (const t of outerTargets) {
+        const a = (t.angle * Math.PI) / 180;
+        const x = cx + Math.cos(a) * radius * t.dist;
+        const y = cy - Math.sin(a) * radius * t.dist;
+        ctx.fillText(t.label, x + 6, y + 3);
+      }
+    }
   }
 }
 

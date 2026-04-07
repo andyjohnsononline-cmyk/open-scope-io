@@ -1,5 +1,10 @@
 import type { ScopeResult } from '@openscope/core';
 
+export type WaveformScaleStyle = 'percentage' | '10-bit' | '12-bit' | 'mv' | 'hdr';
+export type LevelMode = 'video' | 'data';
+export type VectorscopeStyle = 'off' | 'standard' | 'simplified' | 'hue-vectors';
+export type VectorscopeTargets = '75' | '100' | '75+100';
+
 export interface RenderOptions {
   /** Background color (default: '#111214') */
   background?: string;
@@ -15,6 +20,16 @@ export interface RenderOptions {
   mode?: 'luma' | 'rgb';
   /** Histogram layout: overlaid channels or stacked rows (default: 'overlaid') */
   layout?: 'overlaid' | 'stacked';
+  /** Waveform/parade Y-axis scale unit (default: 'percentage') */
+  waveformScale?: WaveformScaleStyle;
+  /** Signal level interpretation (default: 'data') */
+  levelMode?: LevelMode;
+  /** Vectorscope graticule style (default: 'standard') */
+  vectorscopeStyle?: VectorscopeStyle;
+  /** Vectorscope color target level (default: '75') */
+  vectorscopeTargets?: VectorscopeTargets;
+  /** Show text labels on graticules (default: true) */
+  showLabels?: boolean;
 }
 
 export type ScopeRenderFn = (

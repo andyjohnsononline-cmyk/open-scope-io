@@ -1,5 +1,5 @@
 import type { ScopeResult } from '@openscope/core';
-import { type ScopeAppearance, parseHexColor } from '../types.js';
+import { type ScopeAppearance, type RenderOptions, parseHexColor } from '../types.js';
 import type { PipelineResources } from './gl-pipeline.js';
 import type { GraticuleResources } from './gl-graticules.js';
 import { uploadR32UI, uploadR32F } from './gl-textures.js';
@@ -7,33 +7,37 @@ import { runDensityPipeline } from './gl-pipeline.js';
 import {
   drawGraticuleLines,
   vectorscopeGraticuleLines,
+  vectorscopeTargetLines,
+  vectorscopeSkinToneLine,
   drawGraticuleLabels,
 } from './gl-graticules.js';
 
 export interface VectorscopeGLState {
   dataTexture: WebGLTexture | null;
   gratLines: Float32Array | null;
+  targetLines: Float32Array | null;
+  skinLine: Float32Array | null;
   lastWidth: number;
   lastHeight: number;
+  lastStyle: string;
+  lastTargets: string;
 }
 
 export function createVectorscopeGLState(): VectorscopeGLState {
   return {
     dataTexture: null,
     gratLines: null,
+    targetLines: null,
+    skinLine: null,
     lastWidth: 0,
     lastHeight: 0,
+    lastStyle: '',
+    lastTargets: '',
   };
 }
 
 /**
  * Render vectorscope using density pipeline with bilinear filtering.
- *
- * The vectorscope data is a 512x512 (or similar) grid of counts.
- * Uploading as a texture with LINEAR filtering provides free anti-aliasing.
- * The trace color is white; the actual hue-mapping could be done via a
- * colorize shader pass, but for v1 we use a uniform color and rely on
- * additive blending for density visualization.
  */
 export function renderVectorscopeGL(
   gl: WebGL2RenderingContext,
@@ -44,12 +48,12 @@ export function renderVectorscopeGL(
   appearance: ScopeAppearance,
   viewport: [number, number, number, number],
   overlayCtx: CanvasRenderingContext2D | null,
+  options?: RenderOptions,
 ): void {
   const [vx, vy, vw, vh] = viewport;
   const [gridW, gridH] = result.shape;
   const data = result.data;
 
-  // Clear the full canvas with background so areas outside the square are clean
   const [bgR, bgG, bgB] = parseHexColor(appearance.background);
   gl.viewport(vx, vy, vw, vh);
   gl.scissor(vx, vy, vw, vh);
@@ -58,12 +62,18 @@ export function renderVectorscopeGL(
   gl.clear(gl.COLOR_BUFFER_BIT);
   gl.disable(gl.SCISSOR_TEST);
 
-  // Inscribe the square density plot within the canvas, matching the
-  // Canvas 2D renderer's circle-inscribed approach
   const squareSize = Math.min(vw, vh);
   const sqX = vx + Math.floor((vw - squareSize) / 2);
   const sqY = vy + Math.floor((vh - squareSize) / 2);
   const squareViewport: [number, number, number, number] = [sqX, sqY, squareSize, squareSize];
+
+  // #region agent log
+  const _vsLogged = (renderVectorscopeGL as any)._logged;
+  if (!_vsLogged) {
+    (renderVectorscopeGL as any)._logged = true;
+    fetch('http://127.0.0.1:7938/ingest/69a10359-cc6b-4ea1-a7e8-fea8f802754f',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'857586'},body:JSON.stringify({sessionId:'857586',location:'render-vectorscope-gl.ts',message:'Vectorscope viewport',data:{fullVP:[vx,vy,vw,vh],squareVP:[sqX,sqY,squareSize,squareSize],gridW,gridH,fullAR:(vw/vh).toFixed(3)},timestamp:Date.now(),hypothesisId:'H3'})}).catch(()=>{});
+  }
+  // #endregion
 
   let maxVal = 0;
   for (let i = 0; i < data.length; i++) {
@@ -90,56 +100,37 @@ export function renderVectorscopeGL(
     }
   }
 
-  // Reset viewport to full canvas for graticule overlay
   gl.viewport(vx, vy, vw, vh);
 
-  if (state.lastWidth !== vw || state.lastHeight !== vh) {
-    state.gratLines = vectorscopeGraticuleLines(vw, vh);
+  const style = options?.vectorscopeStyle ?? 'standard';
+  const targets = options?.vectorscopeTargets ?? '75';
+  const needsRebuild = state.lastWidth !== vw || state.lastHeight !== vh
+    || state.lastStyle !== style || state.lastTargets !== targets;
+
+  if (needsRebuild) {
+    state.gratLines = vectorscopeGraticuleLines(vw, vh, options);
+    state.targetLines = vectorscopeTargetLines(vw, vh, options);
+    state.skinLine = vectorscopeSkinToneLine(vw, vh, options);
     state.lastWidth = vw;
     state.lastHeight = vh;
+    state.lastStyle = style;
+    state.lastTargets = targets;
   }
-  if (state.gratLines) {
+
+  if (state.gratLines && state.gratLines.length > 0) {
     drawGraticuleLines(gl, graticule, state.gratLines, vw, vh, appearance);
   }
 
-  // Skin tone line
-  const cx = vw / 2;
-  const cy = vh / 2;
-  const radius = Math.min(vw, vh) / 2 - 10;
-  const skinAngle = (123 * Math.PI) / 180;
-  const skinLine = new Float32Array([
-    cx, cy,
-    cx + Math.cos(skinAngle) * radius,
-    cy - Math.sin(skinAngle) * radius,
-  ]);
-
-  // Custom skin-tone line color
-  const skinApp = { ...appearance, graticule: { ...appearance.graticule, lineColor: '#ffc896' } };
-  drawGraticuleLines(gl, graticule, skinLine, vw, vh, skinApp);
-
-  // Primary target boxes (drawn as small crosses via lines)
-  const targets = [
-    { angle: 103, dist: 0.63 },
-    { angle: 241, dist: 0.56 },
-    { angle: 347, dist: 0.59 },
-    { angle: 167, dist: 0.44 },
-    { angle: 283, dist: 0.47 },
-    { angle: 61, dist: 0.59 },
-  ];
-  const boxVerts: number[] = [];
-  for (const t of targets) {
-    const a = (t.angle * Math.PI) / 180;
-    const x = cx + Math.cos(a) * radius * t.dist;
-    const y = cy - Math.sin(a) * radius * t.dist;
-    const s = 4;
-    boxVerts.push(x - s, y - s, x + s, y - s);
-    boxVerts.push(x + s, y - s, x + s, y + s);
-    boxVerts.push(x + s, y + s, x - s, y + s);
-    boxVerts.push(x - s, y + s, x - s, y - s);
+  if (state.skinLine && state.skinLine.length > 0) {
+    const skinApp = { ...appearance, graticule: { ...appearance.graticule, lineColor: '#ffc896' } };
+    drawGraticuleLines(gl, graticule, state.skinLine, vw, vh, skinApp);
   }
-  drawGraticuleLines(gl, graticule, new Float32Array(boxVerts), vw, vh, appearance);
+
+  if (state.targetLines && state.targetLines.length > 0) {
+    drawGraticuleLines(gl, graticule, state.targetLines, vw, vh, appearance);
+  }
 
   if (overlayCtx) {
-    drawGraticuleLabels(overlayCtx, 'vectorscope', vw, vh, appearance);
+    drawGraticuleLabels(overlayCtx, 'vectorscope', vw, vh, appearance, options);
   }
 }

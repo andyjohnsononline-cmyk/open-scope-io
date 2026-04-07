@@ -78,6 +78,38 @@ export function renderFalseColorGL(
   );
   if (!state.frameTexture) return;
 
+  // Compute aspect-ratio-preserving viewport (contain fit)
+  const srcAR = options.sourceWidth / options.sourceHeight;
+  const vpAR = vw / vh;
+  let fitX = vx, fitY = vy, fitW = vw, fitH = vh;
+  if (srcAR > vpAR) {
+    fitH = Math.round(vw / srcAR);
+    fitY = vy + Math.floor((vh - fitH) / 2);
+    fitW = vw;
+  } else if (srcAR < vpAR) {
+    fitW = Math.round(vh * srcAR);
+    fitX = vx + Math.floor((vw - fitW) / 2);
+    fitH = vh;
+  }
+
+  // #region agent log
+  const _fcLogged = (renderFalseColorGL as any)._logged;
+  if (!_fcLogged) {
+    (renderFalseColorGL as any)._logged = true;
+    fetch('http://127.0.0.1:7938/ingest/69a10359-cc6b-4ea1-a7e8-fea8f802754f',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'857586'},body:JSON.stringify({sessionId:'857586',location:'render-false-color-gl.ts',message:'False color viewport vs source (post-fix)',data:{sourceW:options.sourceWidth,sourceH:options.sourceHeight,sourceAR:srcAR.toFixed(3),vpX:vx,vpY:vy,vpW:vw,vpH:vh,vpAR:vpAR.toFixed(3),fitX,fitY,fitW,fitH,fitAR:(fitW/fitH).toFixed(3)},timestamp:Date.now(),hypothesisId:'H1',runId:'post-fix'})}).catch(()=>{});
+  }
+  // #endregion
+
+  // Clear full viewport with background
+  const [bgR, bgG, bgB] = parseHexColor(appearance.background);
+  gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+  gl.viewport(vx, vy, vw, vh);
+  gl.scissor(vx, vy, vw, vh);
+  gl.enable(gl.SCISSOR_TEST);
+  gl.clearColor(bgR / 255, bgG / 255, bgB / 255, 1.0);
+  gl.clear(gl.COLOR_BUFFER_BIT);
+  gl.disable(gl.SCISSOR_TEST);
+
   gl.useProgram(state.program!);
   gl.bindVertexArray(state.vao!);
 
@@ -85,8 +117,7 @@ export function renderFalseColorGL(
   gl.bindTexture(gl.TEXTURE_2D, state.frameTexture);
   gl.uniform1i(gl.getUniformLocation(state.program!, 'uFrame'), 0);
 
-  gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-  gl.viewport(vx, vy, vw, vh);
+  gl.viewport(fitX, fitY, fitW, fitH);
   gl.disable(gl.BLEND);
 
   drawFullscreenTriangle(gl);

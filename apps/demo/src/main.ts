@@ -1,6 +1,15 @@
 import { createPipeline, type Pipeline, type ScopeResult } from '@openscope/core';
 import { allScopes } from '@openscope/shaders';
-import { ScopeRenderer, WebGlScopeRenderer, type WaveformMode } from '@openscope/renderer';
+import {
+  ScopeRenderer,
+  WebGlScopeRenderer,
+  type WaveformMode,
+  type RenderOptions,
+  type WaveformScaleStyle,
+  type LevelMode,
+  type VectorscopeStyle,
+  type VectorscopeTargets,
+} from '@openscope/renderer';
 
 const SCOPE_IDS = ['waveform', 'rgbParade', 'vectorscope', 'histogram', 'falseColor'];
 
@@ -16,6 +25,12 @@ let lastImageData: ImageData | null = null;
 let lastW = 0;
 let lastH = 0;
 
+let currentWaveformScale: WaveformScaleStyle = 'percentage';
+let currentLevelMode: LevelMode = 'data';
+let currentVecStyle: VectorscopeStyle = 'standard';
+let currentVecTargets: VectorscopeTargets = '75';
+let currentShowLabels = true;
+
 const video = document.getElementById('video') as HTMLVideoElement;
 const imageCanvas = document.getElementById('imageCanvas') as HTMLCanvasElement;
 const fileInput = document.getElementById('fileInput') as HTMLInputElement;
@@ -24,6 +39,12 @@ const pauseBtn = document.getElementById('pauseBtn') as HTMLButtonElement;
 const waveformModeBtn = document.getElementById('waveformModeBtn') as HTMLButtonElement;
 const status = document.getElementById('status') as HTMLSpanElement;
 const renderModeSpan = document.getElementById('renderMode') as HTMLSpanElement;
+
+const waveformScaleSelect = document.getElementById('waveformScaleSelect') as HTMLSelectElement;
+const levelModeSelect = document.getElementById('levelModeSelect') as HTMLSelectElement;
+const vecStyleSelect = document.getElementById('vecStyleSelect') as HTMLSelectElement;
+const vecTargetsSelect = document.getElementById('vecTargetsSelect') as HTMLSelectElement;
+const showLabelsCheck = document.getElementById('showLabelsCheck') as HTMLInputElement;
 
 const scopeCanvases = new Map<string, CanvasRenderingContext2D>();
 const scopeElements = new Map<string, HTMLCanvasElement>();
@@ -132,6 +153,12 @@ async function init() {
   webcamBtn.addEventListener('click', handleWebcam);
   pauseBtn.addEventListener('click', togglePause);
   waveformModeBtn.addEventListener('click', toggleWaveformMode);
+
+  waveformScaleSelect.addEventListener('change', handleScopeOptionChange);
+  levelModeSelect.addEventListener('change', handleScopeOptionChange);
+  vecStyleSelect.addEventListener('change', handleScopeOptionChange);
+  vecTargetsSelect.addEventListener('change', handleScopeOptionChange);
+  showLabelsCheck.addEventListener('change', handleScopeOptionChange);
 }
 
 function resizeCanvas(canvas: HTMLCanvasElement) {
@@ -162,6 +189,29 @@ function toggleWaveformMode() {
   }
 }
 
+function handleScopeOptionChange() {
+  currentWaveformScale = waveformScaleSelect.value as WaveformScaleStyle;
+  currentLevelMode = levelModeSelect.value as LevelMode;
+  currentVecStyle = vecStyleSelect.value as VectorscopeStyle;
+  currentVecTargets = vecTargetsSelect.value as VectorscopeTargets;
+  currentShowLabels = showLabelsCheck.checked;
+
+  if (!running && lastResults && lastImageData) {
+    renderResults(lastResults, lastImageData, lastW, lastH);
+  }
+}
+
+function buildRenderOptions(extra?: Partial<RenderOptions>): RenderOptions {
+  return {
+    ...extra,
+    waveformScale: currentWaveformScale,
+    levelMode: currentLevelMode,
+    vectorscopeStyle: currentVecStyle,
+    vectorscopeTargets: currentVecTargets,
+    showLabels: currentShowLabels,
+  };
+}
+
 const IMAGE_EXTENSIONS = /\.(png|jpe?g|gif|webp|bmp|tiff?|svg|avif|heic)$/i;
 
 function isImageFile(file: File): boolean {
@@ -179,22 +229,37 @@ async function handleFileInput() {
   if (isImageFile(file)) {
     video.style.display = 'none';
     imageCanvas.style.display = 'block';
-    const img = new Image();
-    img.onload = async () => {
-      imageCanvas.width = img.naturalWidth;
-      imageCanvas.height = img.naturalHeight;
+
+    try {
+      const bitmap = await createImageBitmap(file);
+      imageCanvas.width = bitmap.width;
+      imageCanvas.height = bitmap.height;
       const ctx = imageCanvas.getContext('2d')!;
-      ctx.drawImage(img, 0, 0);
+      ctx.drawImage(bitmap, 0, 0);
+      bitmap.close();
       handleResize();
-      status.textContent = `Image: ${img.naturalWidth}×${img.naturalHeight}`;
+      status.textContent = `Image: ${bitmap.width}×${bitmap.height}`;
       URL.revokeObjectURL(url);
-      await analyzeImage(ctx, img.naturalWidth, img.naturalHeight);
-    };
-    img.onerror = () => {
-      status.textContent = 'Error: failed to decode image';
-      URL.revokeObjectURL(url);
-    };
-    img.src = url;
+      await analyzeImage(ctx, imageCanvas.width, imageCanvas.height);
+    } catch (e) {
+      const img = new Image();
+      img.onload = async () => {
+        imageCanvas.width = img.naturalWidth;
+        imageCanvas.height = img.naturalHeight;
+        const ctx = imageCanvas.getContext('2d')!;
+        ctx.drawImage(img, 0, 0);
+        handleResize();
+        status.textContent = `Image: ${img.naturalWidth}×${img.naturalHeight}`;
+        URL.revokeObjectURL(url);
+        await analyzeImage(ctx, img.naturalWidth, img.naturalHeight);
+      };
+      img.onerror = () => {
+        const ext = file.name.split('.').pop()?.toUpperCase() ?? 'unknown';
+        status.textContent = `Error: ${ext} format not supported by this browser. Use PNG, JPEG, or WebP.`;
+        URL.revokeObjectURL(url);
+      };
+      img.src = url;
+    }
   } else {
     imageCanvas.style.display = 'none';
     video.style.display = 'block';
@@ -258,8 +323,36 @@ function renderResults(
   lastW = w;
   lastH = h;
 
+  const baseOpts = { sourcePixels: imageData.data, sourceWidth: w, sourceHeight: h };
+  const opts = buildRenderOptions(baseOpts);
+
+  // #region agent log
+  const _logOnce = (renderResults as any)._logged;
+  if (!_logOnce) {
+    (renderResults as any)._logged = true;
+    const dpr = devicePixelRatio || 1;
+    const panelData: Record<string, any> = {};
+    for (const id of SCOPE_IDS) {
+      const canvas = document.getElementById(`canvas-${id}`) as HTMLCanvasElement;
+      const overlay = document.getElementById(`overlay-${id}`) as HTMLCanvasElement;
+      const parent = canvas?.parentElement;
+      const parentRect = parent?.getBoundingClientRect();
+      panelData[id] = {
+        canvasW: canvas?.width, canvasH: canvas?.height,
+        parentW: parentRect?.width, parentH: parentRect?.height,
+        parentAR: parentRect ? (parentRect.width / parentRect.height).toFixed(3) : null,
+        overlayW: overlay?.width, overlayH: overlay?.height,
+      };
+    }
+    const srcPanel = document.querySelector('.source-panel') as HTMLElement;
+    const srcRect = srcPanel?.getBoundingClientRect();
+    const imgStyle = window.getComputedStyle(imageCanvas);
+    const vidStyle = window.getComputedStyle(video);
+    fetch('http://127.0.0.1:7938/ingest/69a10359-cc6b-4ea1-a7e8-fea8f802754f',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'857586'},body:JSON.stringify({sessionId:'857586',location:'main.ts:renderResults',message:'Panel and canvas dimensions',data:{dpr,sourceW:w,sourceH:h,sourceAR:(w/h).toFixed(3),srcPanelW:srcRect?.width,srcPanelH:srcRect?.height,imgCanvasW:imageCanvas.width,imgCanvasH:imageCanvas.height,imgDisplay:imageCanvas.style.display,imgObjFit:imgStyle.objectFit,vidDisplay:video.style.display,vidObjFit:vidStyle.objectFit,panels:panelData},timestamp:Date.now(),hypothesisId:'H1-H5'})}).catch(()=>{});
+  }
+  // #endregion
+
   if (useWebGL && glRenderer) {
-    // In RGB waveform mode, route rgbParade data to the waveform renderer
     if (waveformMode === 'rgb') {
       const paradeResult = results.get('rgbParade');
       if (paradeResult) {
@@ -267,40 +360,26 @@ function renderResults(
           ...paradeResult,
           scopeId: 'waveform',
         };
-        glRenderer.render('waveform', waveformFromParade, {
-          sourcePixels: imageData.data,
-          sourceWidth: w,
-          sourceHeight: h,
-        });
+        glRenderer.render('waveform', waveformFromParade, opts);
       }
     } else {
       const waveformResult = results.get('waveform');
       if (waveformResult) {
-        glRenderer.render('waveform', waveformResult);
+        glRenderer.render('waveform', waveformResult, opts);
       }
     }
 
-    // Render remaining scopes normally
     for (const id of ['rgbParade', 'vectorscope', 'histogram', 'falseColor']) {
       const result = results.get(id);
       if (result) {
-        glRenderer.render(id, result, {
-          sourcePixels: imageData.data,
-          sourceWidth: w,
-          sourceHeight: h,
-        });
+        glRenderer.render(id, result, opts);
       }
     }
   } else {
-    // Canvas 2D fallback
     for (const [id, result] of results) {
       const ctx = scopeCanvases.get(id);
       if (!ctx) continue;
-      canvasRenderer.render(ctx, result, {
-        sourcePixels: imageData.data,
-        sourceWidth: w,
-        sourceHeight: h,
-      });
+      canvasRenderer.render(ctx, result, opts);
     }
   }
 }
