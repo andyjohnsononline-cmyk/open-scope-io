@@ -47,6 +47,10 @@ export function renderParadeGL(
   overlayCtx: CanvasRenderingContext2D | null,
   options?: RenderOptions,
 ): void {
+  if (options?.yAxisScale === 'log') {
+    console.warn('WebGL parade renderer does not support yAxisScale: "log". Falling back to linear.');
+  }
+
   const [vx, vy, vw, vh] = viewport;
   const [totalCols, bins] = result.shape;
   const channelCols = totalCols / 3;

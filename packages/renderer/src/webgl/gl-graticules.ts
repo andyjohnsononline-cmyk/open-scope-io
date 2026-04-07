@@ -310,7 +310,7 @@ function getWaveformLinePositions(options?: RenderOptions): number[] {
   const level: LevelMode = options?.levelMode ?? 'data';
 
   if (scale === 'hdr') {
-    return [0, 0.25, 0.5, 0.75, 1.0];
+    return [0, 0.1, 0.25, 0.5, 0.75, 1.0];
   }
 
   if (level === 'video') {

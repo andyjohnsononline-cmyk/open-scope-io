@@ -103,28 +103,48 @@ export const rgbParade: ScopePlugin = {
 
   parseResult(data: Uint32Array, width: number, _height: number): ScopeResult {
     const stride = width * BINS;
-    let rMin = 255, rMax = 0;
-    let gMin = 255, gMax = 0;
-    let bMin = 255, bMax = 0;
+    let rMin = 255, rMax = 0, rSum = 0, rCount = 0;
+    let gMin = 255, gMax = 0, gSum = 0, gCount = 0;
+    let bMin = 255, bMax = 0, bSum = 0, bCount = 0;
 
     for (let x = 0; x < width; x++) {
       for (let b = 0; b < BINS; b++) {
-        if (data[x * BINS + b] > 0) {
+        const rVal = data[x * BINS + b];
+        if (rVal > 0) {
           if (b < rMin) rMin = b;
           if (b > rMax) rMax = b;
+          rSum += b * rVal;
+          rCount += rVal;
         }
-        if (data[stride + x * BINS + b] > 0) {
+        const gVal = data[stride + x * BINS + b];
+        if (gVal > 0) {
           if (b < gMin) gMin = b;
           if (b > gMax) gMax = b;
+          gSum += b * gVal;
+          gCount += gVal;
         }
-        if (data[stride * 2 + x * BINS + b] > 0) {
+        const bVal = data[stride * 2 + x * BINS + b];
+        if (bVal > 0) {
           if (b < bMin) bMin = b;
           if (b > bMax) bMax = b;
+          bSum += b * bVal;
+          bCount += bVal;
         }
       }
     }
 
     const toIre = (v: number) => Math.round((v / 255) * 10000) / 100;
+    const rMean = rCount > 0 ? rSum / rCount : 0;
+    const gMean = gCount > 0 ? gSum / gCount : 0;
+    const bMean = bCount > 0 ? bSum / bCount : 0;
+    const overallMean = (rMean + gMean + bMean) / 3;
+    const channelImbalance = overallMean > 0
+      ? Math.round(Math.max(
+          Math.abs(rMean - overallMean),
+          Math.abs(gMean - overallMean),
+          Math.abs(bMean - overallMean),
+        ) / overallMean * 10000) / 100
+      : 0;
 
     return {
       scopeId: 'rgbParade',
@@ -139,6 +159,7 @@ export const rgbParade: ScopePlugin = {
         bMax: toIre(bMax),
         minIre: toIre(Math.min(rMin, gMin, bMin)),
         maxIre: toIre(Math.max(rMax, gMax, bMax)),
+        channelImbalance,
       },
     };
   },

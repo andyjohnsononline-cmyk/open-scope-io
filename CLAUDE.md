@@ -26,6 +26,7 @@ pnpm build            # Build all packages
 pnpm dev              # Start demo app (Vite, port 5173)
 pnpm test             # Run tests (vitest)
 pnpm typecheck        # TypeScript type checking
+pnpm prepare:goldens  # Regenerate golden reference JSONs (requires pnpm build first)
 ```
 
 ## Testing

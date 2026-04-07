@@ -50,6 +50,10 @@ export function renderWaveformGL(
   mode: 'luma' | 'rgb' = 'luma',
   options?: RenderOptions,
 ): void {
+  if (options?.yAxisScale === 'log') {
+    console.warn('WebGL waveform renderer does not support yAxisScale: "log". Falling back to linear.');
+  }
+
   const [, , vw, vh] = viewport;
   const [dataCols, bins] = result.shape;
   const data = result.data;

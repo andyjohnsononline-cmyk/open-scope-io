@@ -10,8 +10,8 @@ coverage/
 results.tsv
 run.log
 
-# Resolve golden JSONs (regenerate with: pnpm prepare:goldens)
-packages/validation/src/goldens/isabella-*.golden.json
+# Golden references (regenerate with: pnpm prepare:goldens)
+packages/validation/src/goldens/*.golden.json
 
 # Headless scope renders (regenerate with: tsx scripts/render-scopes.ts)
 renders/

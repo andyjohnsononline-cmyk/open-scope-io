@@ -132,6 +132,17 @@ export const waveform: ScopePlugin = {
     const shadowPixels = countBinsBelow(data, width, 4);
     const highlightPixels = countBinsAbove(data, width, 251);
 
+    let clippingShadowCols = 0;
+    let clippingHighlightCols = 0;
+    for (let x = 0; x < width; x++) {
+      let shadowCount = 0;
+      let highlightCount = 0;
+      for (let b = 0; b < 4; b++) shadowCount += data[x * BINS + b];
+      for (let b = 251; b < BINS; b++) highlightCount += data[x * BINS + b];
+      if (shadowCount > height * 0.01) clippingShadowCols++;
+      if (highlightCount > height * 0.01) clippingHighlightCols++;
+    }
+
     return {
       scopeId: 'waveform',
       data,
@@ -142,6 +153,8 @@ export const waveform: ScopePlugin = {
         meanIre: round4(meanIre),
         clippingShadows: shadowPixels > totalPixels * 0.01,
         clippingHighlights: highlightPixels > totalPixels * 0.01,
+        clippingShadowColumns: clippingShadowCols,
+        clippingHighlightColumns: clippingHighlightCols,
       },
     };
   },
