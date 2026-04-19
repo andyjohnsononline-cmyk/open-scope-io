@@ -10,10 +10,17 @@ interface CachedResources {
   frameHeight: number;
 }
 
+interface CachedInputTexture {
+  texture: GPUTexture;
+  width: number;
+  height: number;
+}
+
 export class GpuPipeline implements Pipeline {
   readonly mode = 'gpu' as const;
   private registry = new PluginRegistry();
   private cache = new Map<string, CachedResources>();
+  private inputTexture: CachedInputTexture | null = null;
   private bindGroupLayout: GPUBindGroupLayout;
 
   constructor(private device: GPUDevice) {
@@ -95,7 +102,6 @@ export class GpuPipeline implements Pipeline {
     this.device.queue.submit([encoder.finish()]);
     const gpuError = await this.device.popErrorScope();
     if (gpuError) {
-      texture.destroy();
       throw new Error(`WebGPU validation: ${gpuError.message}`);
     }
 
@@ -110,7 +116,6 @@ export class GpuPipeline implements Pipeline {
       results.set(id, plugin.parseResult!(data, width, height));
     }
 
-    texture.destroy();
     return results;
   }
 
@@ -120,6 +125,10 @@ export class GpuPipeline implements Pipeline {
       res.stagingBuffer.destroy();
     }
     this.cache.clear();
+    if (this.inputTexture) {
+      this.inputTexture.texture.destroy();
+      this.inputTexture = null;
+    }
   }
 
   private getOrCreateResources(
@@ -171,47 +180,48 @@ export class GpuPipeline implements Pipeline {
   }
 
   private async createTexture(frame: FrameSource): Promise<GPUTexture> {
+    const width = 'data' in frame ? (frame as PixelData).width : (frame as ImageBitmap).width;
+    const height = 'data' in frame ? (frame as PixelData).height : (frame as ImageBitmap).height;
+    const texture = this.getOrCreateInputTexture(width, height);
+
     if ('data' in frame) {
-      return this.createTextureFromPixels(frame as PixelData);
+      const pixels = frame as PixelData;
+      const buf = new ArrayBuffer(pixels.data.byteLength);
+      new Uint8Array(buf).set(pixels.data);
+      this.device.queue.writeTexture(
+        { texture },
+        buf,
+        { bytesPerRow: pixels.width * 4, rowsPerImage: pixels.height },
+        [pixels.width, pixels.height],
+      );
+    } else {
+      const bitmap = frame as ImageBitmap;
+      this.device.queue.copyExternalImageToTexture(
+        { source: bitmap },
+        { texture },
+        [bitmap.width, bitmap.height],
+      );
     }
-    return this.createTextureFromBitmap(frame as ImageBitmap);
+
+    return texture;
   }
 
-  private createTextureFromBitmap(bitmap: ImageBitmap): GPUTexture {
+  private getOrCreateInputTexture(width: number, height: number): GPUTexture {
+    const cached = this.inputTexture;
+    if (cached && cached.width === width && cached.height === height) {
+      return cached.texture;
+    }
+    cached?.texture.destroy();
+
     const texture = this.device.createTexture({
-      size: [bitmap.width, bitmap.height],
+      size: [width, height],
       format: 'rgba8unorm',
       usage:
         GPUTextureUsage.TEXTURE_BINDING |
         GPUTextureUsage.COPY_DST |
         GPUTextureUsage.RENDER_ATTACHMENT,
     });
-
-    this.device.queue.copyExternalImageToTexture(
-      { source: bitmap },
-      { texture },
-      [bitmap.width, bitmap.height],
-    );
-
-    return texture;
-  }
-
-  private createTextureFromPixels(pixels: PixelData): GPUTexture {
-    const texture = this.device.createTexture({
-      size: [pixels.width, pixels.height],
-      format: 'rgba8unorm',
-      usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST,
-    });
-
-    const buf = new ArrayBuffer(pixels.data.byteLength);
-    new Uint8Array(buf).set(pixels.data);
-    this.device.queue.writeTexture(
-      { texture },
-      buf,
-      { bytesPerRow: pixels.width * 4, rowsPerImage: pixels.height },
-      [pixels.width, pixels.height],
-    );
-
+    this.inputTexture = { texture, width, height };
     return texture;
   }
 }

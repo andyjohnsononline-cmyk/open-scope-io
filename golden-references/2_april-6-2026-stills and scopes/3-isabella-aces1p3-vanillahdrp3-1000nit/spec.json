@@ -1,0 +1,81 @@
+{
+  "version": "1.0",
+  "variant": "3-isabella-aces1p3-vanillahdrp3-1000nit",
+  "description": "Isabella source frame through ACES 1.3 vanilla HDR P3 1000-nit output transform.",
+  "source": {
+    "tif": "3-isabella-aces1p3-vanillahdrp3-1000nit.tif",
+    "width": 1920,
+    "height": 1080,
+    "colorspace": "P3-D65",
+    "transferFunction": "PQ (ST.2084)",
+    "peakLuminanceNits": 1000,
+    "acesVersion": "1.3",
+    "odt": "HDR P3 1000-nit",
+    "notes": "ACES 1.3 HDR P3 1000-nit ODT. OpenScope v1 does not apply transfer functions — treating PQ-encoded TIFF as rgba8unorm will produce scope readings in the PQ-encoded space, not linear light. Useful as a cross-pipeline visual check, not for quantitative conformance."
+  },
+  "screenshotWindow": {
+    "width": 2288,
+    "height": 1834,
+    "os": "macOS",
+    "app": "DaVinci Resolve",
+    "capturedAt": "2026-04-06",
+    "retinaScale": 2,
+    "notes": "Retina-scaled macOS screenshots. Logical window ~1144x917."
+  },
+  "scopes": [
+    {
+      "scopeId": "waveform",
+      "resolveName": "Waveform",
+      "file": "Screenshot 2026-04-06 at 22.58.01.png",
+      "cropRect": { "x": 70, "y": 130, "width": 2200, "height": 1690 },
+      "axisRange": { "yMin": 0, "yMax": 1023, "yScale": "log" },
+      "colorspace": "P3-D65 (PQ)",
+      "notes": "Log Y scale. Resolve waveform for HDR content. AI-inferred crop; visual verification pending."
+    },
+    {
+      "scopeId": "rgbParade",
+      "resolveName": "Parade",
+      "file": "Screenshot 2026-04-06 at 22.58.05.png",
+      "cropRect": { "x": 70, "y": 130, "width": 2200, "height": 1690 },
+      "axisRange": { "yMin": 0, "yMax": 1023, "yScale": "log" },
+      "colorspace": "P3-D65 (PQ)",
+      "notes": "Log Y scale. AI-inferred crop; visual verification pending."
+    },
+    {
+      "scopeId": "vectorscope",
+      "resolveName": "Vectorscope",
+      "file": "Screenshot 2026-04-06 at 22.58.07.png",
+      "cropRect": { "x": 40, "y": 80, "width": 2180, "height": 1740 },
+      "axisRange": null,
+      "targets": "Rec.709",
+      "colorspace": "P3-D65 (PQ)",
+      "notes": "Vectorscope targets remain Rec.709 in Resolve UI even for P3 content unless explicitly changed. AI-inferred crop; visual verification pending."
+    },
+    {
+      "scopeId": "histogram",
+      "resolveName": "Histogram",
+      "file": "Screenshot 2026-04-06 at 22.58.10.png",
+      "cropRect": { "x": 40, "y": 110, "width": 2200, "height": 1700 },
+      "axisRange": { "xMin": 0, "xMax": 1023, "xScale": "log" },
+      "colorspace": "P3-D65 (PQ)",
+      "notes": "Log X scale. AI-inferred crop; visual verification pending."
+    },
+    {
+      "scopeId": "cieChromaticity",
+      "resolveName": "CIE Chromaticity",
+      "file": "Screenshot 2026-04-06 at 22.58.13.png",
+      "cropRect": { "x": 100, "y": 80, "width": 2000, "height": 1740 },
+      "axisRange": { "xMin": 0, "xMax": 1, "yMin": 0, "yMax": 1, "xScale": "linear", "yScale": "linear" },
+      "targets": "Rec.709 (D65)",
+      "colorspace": "CIE xy",
+      "notes": "Not implemented in OpenScope v1. Points extend past Rec.709 triangle into P3 gamut. AI-inferred crop; visual verification pending."
+    }
+  ],
+  "annotationMeta": {
+    "annotatedBy": "ai-phase-0",
+    "annotatedAt": "2026-04-19",
+    "confidence": "low",
+    "reviewStatus": "pending",
+    "notes": "Screenshot order assumed identical to variant 1. Verified first screenshot is Waveform. Note: OpenScope v1 has no PQ transfer-function support; this variant is a visual reference, not a conformance target."
+  }
+}
