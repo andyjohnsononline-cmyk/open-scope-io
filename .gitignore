@@ -15,3 +15,6 @@ packages/validation/src/goldens/*.golden.json
 
 # Headless scope renders (regenerate with: tsx scripts/render-scopes.ts)
 renders/
+
+# Baked PNG sidecars for scope frames (regenerate with: pnpm tsx scripts/bake-pngs.ts)
+packages/validation/src/goldens/frames/*.png
