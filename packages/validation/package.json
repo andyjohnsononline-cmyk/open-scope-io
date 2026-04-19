@@ -12,5 +12,11 @@
     "@openscope/renderer": "workspace:*",
     "@openscope/shaders": "workspace:*"
   },
+  "devDependencies": {
+    "@types/pixelmatch": "^5.2.6",
+    "@types/pngjs": "^6.0.5",
+    "pixelmatch": "^7.1.0",
+    "pngjs": "^7.0.0"
+  },
   "license": "MIT"
 }

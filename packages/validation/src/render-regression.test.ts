@@ -1,8 +1,20 @@
-import { describe, it, expect, beforeAll } from 'vitest';
-import { createHash } from 'node:crypto';
-import { existsSync } from 'node:fs';
-import { resolve, dirname } from 'node:path';
+/**
+ * Render regression tests.
+ *
+ * Compares Canvas2D scope renders against committed golden PNGs using
+ * pixelmatch with a generous per-pixel threshold so darwin/linux
+ * @napi-rs/canvas antialiasing drift doesn't flag false regressions. Real
+ * regressions (geometry, missing passes, clear-on-top bugs) shift >5% of
+ * pixels and still fail.
+ *
+ * Regenerate goldens: UPDATE_GOLDENS=1 pnpm test render-regression
+ */
+import { describe, it, beforeAll, expect } from 'vitest';
+import { existsSync, readFileSync, writeFileSync, mkdirSync } from 'node:fs';
+import { resolve, dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import pixelmatch from 'pixelmatch';
+import { PNG } from 'pngjs';
 import { createCpuPipeline, type ScopeResult } from '@openscope/core';
 import { allScopes } from '@openscope/shaders';
 import {
@@ -13,32 +25,82 @@ import {
   renderFalseColor,
   type RenderOptions,
 } from '@openscope/renderer';
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+import { createCanvas } from '@napi-rs/canvas';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const FRAMES_DIR = resolve(__dirname, './goldens/frames');
 const TIF_PATH = resolve(FRAMES_DIR, 'isabella-no-lut.tif');
+const GOLDENS_DIR = resolve(__dirname, './goldens/render');
 
 const WIDTH = 480;
 const HEIGHT = 270;
 
+// pixelmatch threshold: 0.15 is relatively strict per-pixel (0=identical, 1=anything).
+// Max allowed fraction of differing pixels, tuned for darwin/linux canvas drift.
+const MAX_DIFF_FRACTION = 0.05;
+const PIXELMATCH_THRESHOLD = 0.15;
+
 let results: Map<string, ScopeResult>;
 let frameData: { data: Uint8ClampedArray; width: number; height: number };
 
-function hashPixels(pixels: Uint8ClampedArray): string {
-  return createHash('sha256').update(pixels).digest('hex').slice(0, 16);
-}
-
-function createTestCanvas(): { ctx: CanvasRenderingContext2D; pixels: () => Uint8ClampedArray } {
-  const { createCanvas } = require('@napi-rs/canvas');
+function createTestCanvas(): {
+  ctx: CanvasRenderingContext2D;
+  pixels: () => Uint8Array;
+} {
   const canvas = createCanvas(WIDTH, HEIGHT);
   const ctx = canvas.getContext('2d') as unknown as CanvasRenderingContext2D;
   return {
     ctx,
     pixels: () => {
       const imageData = ctx.getImageData(0, 0, WIDTH, HEIGHT);
-      return imageData.data;
+      return new Uint8Array(imageData.data.buffer, imageData.data.byteOffset, imageData.data.byteLength);
     },
   };
+}
+
+function writeGolden(name: string, rgba: Uint8Array): void {
+  mkdirSync(GOLDENS_DIR, { recursive: true });
+  const png = new PNG({ width: WIDTH, height: HEIGHT });
+  png.data = Buffer.from(rgba);
+  writeFileSync(join(GOLDENS_DIR, `${name}.png`), PNG.sync.write(png));
+}
+
+function readGolden(name: string): Uint8Array {
+  const buf = readFileSync(join(GOLDENS_DIR, `${name}.png`));
+  const png = PNG.sync.read(buf);
+  if (png.width !== WIDTH || png.height !== HEIGHT) {
+    throw new Error(
+      `golden ${name}.png has unexpected dims ${png.width}x${png.height}, expected ${WIDTH}x${HEIGHT}`,
+    );
+  }
+  return new Uint8Array(png.data);
+}
+
+function expectMatchesGolden(name: string, actual: Uint8Array): void {
+  if (process.env.UPDATE_GOLDENS === '1') {
+    writeGolden(name, actual);
+    return;
+  }
+  const goldenPath = join(GOLDENS_DIR, `${name}.png`);
+  if (!existsSync(goldenPath)) {
+    throw new Error(
+      `golden ${name}.png missing. Regenerate with: UPDATE_GOLDENS=1 pnpm test render-regression`,
+    );
+  }
+  const expected = readGolden(name);
+  const diff = new Uint8Array(WIDTH * HEIGHT * 4);
+  const diffPixels = pixelmatch(expected, actual, diff, WIDTH, HEIGHT, {
+    threshold: PIXELMATCH_THRESHOLD,
+  });
+  const fraction = diffPixels / (WIDTH * HEIGHT);
+  expect(
+    fraction,
+    `render-regression ${name}: ${diffPixels} px differ (${(fraction * 100).toFixed(2)}%), ` +
+      `threshold ${(MAX_DIFF_FRACTION * 100).toFixed(1)}%. ` +
+      `If this is an intentional render change, update goldens with: ` +
+      `UPDATE_GOLDENS=1 pnpm test render-regression`,
+  ).toBeLessThanOrEqual(MAX_DIFF_FRACTION);
 }
 
 async function loadFrame() {
@@ -66,57 +128,49 @@ describe.skipIf(!HAS_TIF)('rendering regression', () => {
   it('waveform linear renders consistently', () => {
     const { ctx, pixels } = createTestCanvas();
     renderWaveform(ctx, results.get('waveform')!);
-    const hash = hashPixels(pixels());
-    expect(hash).toMatchSnapshot();
+    expectMatchesGolden('waveform-linear', pixels());
   });
 
   it('waveform log renders consistently', () => {
     const { ctx, pixels } = createTestCanvas();
     renderWaveform(ctx, results.get('waveform')!, { yAxisScale: 'log' });
-    const hash = hashPixels(pixels());
-    expect(hash).toMatchSnapshot();
+    expectMatchesGolden('waveform-log', pixels());
   });
 
   it('waveform rgb renders consistently', () => {
     const { ctx, pixels } = createTestCanvas();
     renderWaveform(ctx, results.get('rgbParade')!, { mode: 'rgb' });
-    const hash = hashPixels(pixels());
-    expect(hash).toMatchSnapshot();
+    expectMatchesGolden('waveform-rgb', pixels());
   });
 
   it('parade linear renders consistently', () => {
     const { ctx, pixels } = createTestCanvas();
     renderParade(ctx, results.get('rgbParade')!);
-    const hash = hashPixels(pixels());
-    expect(hash).toMatchSnapshot();
+    expectMatchesGolden('parade-linear', pixels());
   });
 
   it('parade log renders consistently', () => {
     const { ctx, pixels } = createTestCanvas();
     renderParade(ctx, results.get('rgbParade')!, { yAxisScale: 'log' });
-    const hash = hashPixels(pixels());
-    expect(hash).toMatchSnapshot();
+    expectMatchesGolden('parade-log', pixels());
   });
 
   it('vectorscope renders consistently', () => {
     const { ctx, pixels } = createTestCanvas();
     renderVectorscope(ctx, results.get('vectorscope')!);
-    const hash = hashPixels(pixels());
-    expect(hash).toMatchSnapshot();
+    expectMatchesGolden('vectorscope', pixels());
   });
 
   it('histogram overlaid renders consistently', () => {
     const { ctx, pixels } = createTestCanvas();
     renderHistogram(ctx, results.get('histogram')!);
-    const hash = hashPixels(pixels());
-    expect(hash).toMatchSnapshot();
+    expectMatchesGolden('histogram-overlaid', pixels());
   });
 
   it('histogram stacked renders consistently', () => {
     const { ctx, pixels } = createTestCanvas();
     renderHistogram(ctx, results.get('histogram')!, { layout: 'stacked' });
-    const hash = hashPixels(pixels());
-    expect(hash).toMatchSnapshot();
+    expectMatchesGolden('histogram-stacked', pixels());
   });
 
   it('false color renders consistently', () => {
@@ -127,7 +181,6 @@ describe.skipIf(!HAS_TIF)('rendering regression', () => {
       sourceHeight: frameData.height,
     };
     renderFalseColor(ctx, results.get('falseColor')!, opts);
-    const hash = hashPixels(pixels());
-    expect(hash).toMatchSnapshot();
+    expectMatchesGolden('false-color', pixels());
   });
 });
