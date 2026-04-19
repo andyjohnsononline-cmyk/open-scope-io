@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>OpenScope Harness — Scope Scrubber</title>
+  <link rel="stylesheet" href="/src/style.css" />
+</head>
+<body>
+  <header>
+    <h1>OpenScope Harness</h1>
+    <p class="subtitle">Scope Scrubber · OpenScope vs. DaVinci Resolve</p>
+    <span id="pipelineMode" class="pipeline-mode">Pipeline: …</span>
+  </header>
+
+  <div class="controls">
+    <label class="control-label">Variant</label>
+    <select id="variantSelect" title="Isabella variant">
+      <option value="1-Isabella-no-lut">1 · Isabella no-LUT</option>
+      <option value="2-isabella-aces1p3-vanilla">2 · ACES 1.3 Rec.709</option>
+      <option value="3-isabella-aces1p3-vanillahdrp3-1000nit">3 · ACES 1.3 HDR P3 1000-nit</option>
+    </select>
+
+    <div class="control-separator"></div>
+
+    <label class="control-label">Scope</label>
+    <select id="scopeSelect" title="Scope">
+      <option value="waveform">Waveform</option>
+      <option value="rgbParade">RGB Parade</option>
+      <option value="vectorscope">Vectorscope</option>
+      <option value="histogram">Histogram</option>
+      <option value="cieChromaticity">CIE Chromaticity</option>
+    </select>
+
+    <div class="control-separator"></div>
+
+    <label class="checkbox-label" title="Overlay crop rect on full Resolve screenshot">
+      <input type="checkbox" id="showFullCheck" />
+      Show full screenshot (verify crop)
+    </label>
+
+    <span id="status">Loading…</span>
+  </div>
+
+  <main class="layout">
+    <section class="panel panel-source">
+      <div class="panel-label">Source frame</div>
+      <canvas id="canvas-source" role="img" aria-label="Isabella source frame"></canvas>
+    </section>
+
+    <section class="panel panel-openscope">
+      <div class="panel-label">OpenScope (live)</div>
+      <canvas id="canvas-openscope" role="img" aria-label="OpenScope live render"></canvas>
+      <canvas id="overlay-openscope" class="scope-overlay"></canvas>
+      <span id="badge-openscope" class="scope-badge"></span>
+    </section>
+
+    <section class="panel panel-resolve">
+      <div class="panel-label">Resolve (cropped)</div>
+      <canvas id="canvas-resolve" role="img" aria-label="Resolve screenshot crop"></canvas>
+      <canvas id="overlay-resolve" class="scope-overlay"></canvas>
+    </section>
+
+    <section class="panel panel-diff">
+      <div class="panel-label">Diff</div>
+      <canvas id="canvas-diff" role="img" aria-label="Pixel difference visualization"></canvas>
+      <div id="diffReadout" class="diff-readout">
+        <span class="readout-row"><span class="readout-key">SSIM</span><span id="ssimValue" class="readout-val">—</span></span>
+        <span class="readout-row"><span class="readout-key">Δ px</span><span id="diffPixelsValue" class="readout-val">—</span></span>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    OpenScope Harness · Port 5174 · <span id="cropNote">crop rects are AI-inferred (confidence: low)</span>
+  </footer>
+
+  <script type="module" src="/src/main.ts"></script>
+</body>
+</html>

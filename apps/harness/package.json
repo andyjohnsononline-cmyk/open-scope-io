@@ -1,0 +1,22 @@
+{
+  "name": "@openscope/harness",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@openscope/core": "workspace:*",
+    "@openscope/shaders": "workspace:*",
+    "@openscope/renderer": "workspace:*",
+    "pixelmatch": "^7.1.0",
+    "ssim.js": "^3.5.0"
+  },
+  "devDependencies": {
+    "@types/pixelmatch": "^5.2.6",
+    "vite": "^6.0.0"
+  }
+}
