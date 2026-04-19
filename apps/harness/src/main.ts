@@ -48,7 +48,7 @@ const VARIANT_FRAME_MAP: Record<string, string> = {
   '3-isabella-aces1p3-vanillahdrp3-1000nit': '/goldens/frames/isabella-aces13-hdr-p3.png',
 };
 
-const VARIANT_DIR_BASE = '/resolve/2_april-6-2026-stills and scopes';
+const VARIANT_DIR_BASE = '/resolve';
 
 // --- DOM refs ---------------------------------------------------------------
 const variantSelect = el<HTMLSelectElement>('variantSelect');
