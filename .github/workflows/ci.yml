@@ -27,3 +27,64 @@ jobs:
       - run: pnpm test
 
       - run: pnpm typecheck
+
+  perf-bench:
+    # Warn-only CPU perf smoke. Runs on PRs after `test` passes.
+    # Threshold locked at 30% (eng review) but real regression gating lands
+    # once a committed baseline.json exists for comparison. Until then this
+    # job just proves scripts/perf-bench.ts runs on the CI runner and uploads
+    # the JSON report as an artifact for future baseline bootstrap.
+    if: github.event_name == 'pull_request'
+    needs: test
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+      contents: read
+    continue-on-error: true
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - run: pnpm build
+
+      - name: Run perf-bench (smoke)
+        run: pnpm tsx scripts/perf-bench.ts --smoke --output perf-current.json --notes "CI smoke on ${{ github.sha }}"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: perf-report-${{ github.sha }}
+          path: perf-current.json
+          retention-days: 30
+
+      - name: PR comment
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const report = JSON.parse(fs.readFileSync('perf-current.json', 'utf8'));
+            const ok = report.results.filter(c => c.status === 'ok');
+            const cell = ok[0];
+            const body = [
+              '## Perf smoke ✅',
+              '',
+              `- Hardware: ${report.hw.cpuModel} · ${report.hw.os} · Node ${report.hw.nodeVersion}`,
+              `- Cells: ${ok.length} ok / ${report.results.length} total`,
+              cell ? `- Sample cell: \`${cell.scopeId}\` ${cell.width}×${cell.height} ${cell.pipeline}/${cell.mode} → median ${cell.medianMs.toFixed(3)}ms (p99 ${cell.p99Ms.toFixed(3)}ms)` : '',
+              '',
+              '_Smoke run only. Full matrix comparison vs baseline lands in a follow-up (threshold locked at 30%)._'
+            ].filter(Boolean).join('\n');
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body
+            });
