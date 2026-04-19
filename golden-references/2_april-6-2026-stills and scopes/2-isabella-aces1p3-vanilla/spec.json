@@ -1,0 +1,80 @@
+{
+  "version": "1.0",
+  "variant": "2-isabella-aces1p3-vanilla",
+  "description": "Isabella source frame through ACES 1.3 vanilla Rec.709 output transform.",
+  "source": {
+    "tif": "2-isabella-aces1p3-vanilla.tif",
+    "width": 1920,
+    "height": 1080,
+    "colorspace": "Rec.709",
+    "transferFunction": "Rec.709 / sRGB",
+    "acesVersion": "1.3",
+    "odt": "Rec.709 vanilla",
+    "notes": "ACES 1.3 IDT applied; vanilla Rec.709 Output Device Transform. Intended for SDR Rec.709 display."
+  },
+  "screenshotWindow": {
+    "width": 2288,
+    "height": 1834,
+    "os": "macOS",
+    "app": "DaVinci Resolve",
+    "capturedAt": "2026-04-06",
+    "retinaScale": 2,
+    "notes": "Retina-scaled macOS screenshots. Logical window ~1144x917. Slightly shorter than variant 1 (1834 vs 1842)."
+  },
+  "scopes": [
+    {
+      "scopeId": "waveform",
+      "resolveName": "Waveform",
+      "file": "Screenshot 2026-04-06 at 22.56.30.png",
+      "cropRect": { "x": 70, "y": 130, "width": 2200, "height": 1690 },
+      "axisRange": { "yMin": 0, "yMax": 1023, "yScale": "log" },
+      "colorspace": "Rec.709",
+      "notes": "Log Y scale. AI-inferred crop; visual verification pending."
+    },
+    {
+      "scopeId": "rgbParade",
+      "resolveName": "Parade",
+      "file": "Screenshot 2026-04-06 at 22.56.33.png",
+      "cropRect": { "x": 70, "y": 130, "width": 2200, "height": 1690 },
+      "axisRange": { "yMin": 0, "yMax": 1023, "yScale": "log" },
+      "colorspace": "Rec.709",
+      "notes": "Log Y scale. AI-inferred crop; visual verification pending."
+    },
+    {
+      "scopeId": "vectorscope",
+      "resolveName": "Vectorscope",
+      "file": "Screenshot 2026-04-06 at 22.56.36.png",
+      "cropRect": { "x": 40, "y": 80, "width": 2180, "height": 1740 },
+      "axisRange": null,
+      "targets": "Rec.709",
+      "colorspace": "Rec.709",
+      "notes": "Targets shown are Rec.709 primaries. AI-inferred crop; visual verification pending."
+    },
+    {
+      "scopeId": "histogram",
+      "resolveName": "Histogram",
+      "file": "Screenshot 2026-04-06 at 22.56.39.png",
+      "cropRect": { "x": 40, "y": 110, "width": 2200, "height": 1700 },
+      "axisRange": { "xMin": 0, "xMax": 1023, "xScale": "log" },
+      "colorspace": "Rec.709",
+      "notes": "Log X scale. RGB stacked. AI-inferred crop; visual verification pending."
+    },
+    {
+      "scopeId": "cieChromaticity",
+      "resolveName": "CIE Chromaticity",
+      "file": "Screenshot 2026-04-06 at 22.56.42.png",
+      "cropRect": { "x": 100, "y": 80, "width": 2000, "height": 1740 },
+      "axisRange": { "xMin": 0, "xMax": 1, "yMin": 0, "yMax": 1, "xScale": "linear", "yScale": "linear" },
+      "targets": "Rec.709 (D65)",
+      "colorspace": "CIE xy",
+      "notes": "Not implemented in OpenScope v1. AI-inferred crop; visual verification pending."
+    }
+  ],
+  "annotationMeta": {
+    "annotatedBy": "ai-phase-0",
+    "annotatedAt": "2026-04-19",
+    "confidence": "low",
+    "reviewStatus": "pending",
+    "notes": "Screenshot order assumed identical to variant 1 (Waveform, Parade, Vectorscope, Histogram, CIE). Verified first screenshot is Waveform; other 4 inferred from capture timestamp order."
+  }
+}
