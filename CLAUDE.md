@@ -16,6 +16,7 @@ packages/
   validation/ — Conformance validation suite (private, test-only)
 apps/
   demo/       — Vite demo app for testing scopes in-browser
+  harness/    — Resolve parity scrubber — side-by-side compare OpenScope vs DaVinci Resolve screenshots
 ```
 
 ## Commands
@@ -24,6 +25,7 @@ apps/
 pnpm install          # Install dependencies
 pnpm build            # Build all packages
 pnpm dev              # Start demo app (Vite, port 5173)
+pnpm dev:harness      # Start Resolve parity scrubber (Vite, port 5174)
 pnpm test             # Run tests (vitest)
 pnpm typecheck        # TypeScript type checking
 pnpm prepare:goldens  # Regenerate golden reference JSONs (requires pnpm build first)
