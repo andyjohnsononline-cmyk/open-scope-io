@@ -37,14 +37,14 @@
 
 These TODOs were surfaced during the `connect-into-resolve` CEO plan review. The Phase 1 validation lake (playback harness + perf benchmarks) ships on branch `connect-into-resolve`. These items are either prerequisites, strategic checkpoints, or deferred dependencies for later phases.
 
-### Revisit "monitor vs embedded engine" strategic thesis (post-Phase 1)
-- **What:** Calendar-driven review after Phase 1 (validation lake) ships. Decide whether standalone monitor stays the Phase 2 thesis OR "OpenScope as the embedded scope engine inside other tools" (OBS, Olive, Kdenlive, Natron, Nuke) becomes the thesis instead.
-- **Why:** The CEO review's adversarial subagent argued the embedded-engine framing is the uncontested 10x play for an MIT library project — amplifies existing library users instead of abandoning them for an app-category competition vs. ScopeBox/OmniScope. User parked the decision. Without an explicit TODO, the parked decision drifts and monitor-app momentum takes over by default.
-- **Pros:** Keeps strategic optionality alive. Phase 1 serves either thesis, so nothing is wasted regardless of outcome.
+### Revisit "monitor vs embedded engine" strategic thesis (post-Phase 2)
+- **What:** Calendar-driven review after Phase 2 (rendering parity) ships. Decide whether standalone monitor stays the Phase 3 thesis OR "OpenScope as the embedded scope engine inside other tools" (OBS, Olive, Kdenlive, Natron, Nuke) becomes the thesis instead.
+- **Why:** Original rationale still applies. Additionally, post-Phase-2 the library will have verified Resolve parity + a CI-gated parity contract — which strengthens the embedded-engine pitch ("drop-in scope engine that's measurably accurate"). Revisit once that's real.
+- **Pros:** Keeps strategic optionality alive. Parity work serves either thesis.
 - **Cons:** Strategic reviews are easy to skip if not scheduled.
-- **Context:** Deferred from CEO review (2026-04-19, /plan-ceo-review). Trigger: after `apps/harness/` + perf benchmark JSONs ship. Process: 1-hr meeting (or solo thinking session), review Phase 1 learnings + signals from early users, decide. Output: a follow-up /plan-ceo-review or written decision in CEO plans dir.
+- **Context:** Originally deferred 2026-04-19. Re-dated 2026-04-20 to follow Phase 2. Trigger: after Phase 2 parity CI gate is green on main. Process: 1-hr /plan-ceo-review on direction decision. Output: new CEO plan in ~/.gstack/projects/$SLUG/ceo-plans/.
 - **Priority:** P1
-- **Depends on:** Phase 1 validation lake shipped
+- **Depends on:** Phase 2 rendering parity shipped
 
 ### Verify WebGPU compute path is primary before Phase 1 benchmarks
 - **What:** Audit whether `packages/core/gpu-pipeline.ts` is the primary pipeline in both demo and library consumers, or whether it exists in parallel with the WebGL2 rendering path without being what actually runs in production. If parallel-but-unused, either wire it in or explicitly mark it experimental.
@@ -64,11 +64,29 @@ These TODOs were surfaced during the `connect-into-resolve` CEO plan review. The
 - **Priority:** P2
 - **Depends on:** Phase 2 shipping (not blocking for current work)
 
-### Code signing + notarization plan for Phase 2 distribution
+### Browser WebGPU test infrastructure (Playwright-based)
+- **What:** Build a Playwright or similar browser-test harness that exercises the WebGPU compute path end-to-end and asserts results against the CPU path within a documented tolerance.
+- **Why:** Currently `packages/validation/src/perf/bench.ts:145` short-circuits WebGPU cells to `status:'skipped'` in Node. Vitest runs in Node only. Real CPU⇔GPU parity CI needs a browser runner. Codex's outside voice on the Phase 2 CEO plan flagged this gap — v2 of the plan pushed this to Phase 3 rather than fake it.
+- **Pros:** Makes the WebGPU compute path actually testable. Closes a trust gap for library consumers ("does GPU give the same answers as CPU?"). Blocker for any CI-gated GPU claim.
+- **Cons:** Non-trivial CI complexity (headless Chromium + WebGPU flag or a real GPU runner). Adds test runtime. Second browser (Firefox/Safari) needs separate infra.
+- **Context:** Surfaced by Codex outside voice on 2026-04-20. Phase 2 ships a one-off manual sanity check in its place; real CI infra is this TODO.
+- **Priority:** P1 (blocks Phase 3 monitor-app confidence)
+- **Depends on:** Phase 2 parity gate landed
+
+### Graticule module extraction (refactor)
+- **What:** Extract a shared `Graticule` module from `packages/renderer/src/render-waveform.ts` / `render-parade.ts` / `render-histogram.ts`. Log-aware, range-aware, single source of truth for axis labels + gridlines + tick marks.
+- **Why:** Phase 2 parity work adds log-axis support across multiple scopes; duplicated graticule code risks drift between them. Not blocking Phase 2 (inlining is fine for the initial parity ship) but is follow-up refactor debt.
+- **Pros:** DRY. Easier to add new graticule styles (broadcast 7.5 IRE pedestal, etc.) once.
+- **Cons:** Premature if only 3 scopes use it. Adds an abstraction layer.
+- **Context:** Deferred from Phase 2 CEO review 2026-04-20 (v2). Revisit after Phase 2 lands; extract if Phase 3 adds a 4th consumer.
+- **Priority:** P3
+- **Depends on:** Phase 2 rendering parity shipped
+
+### Code signing + notarization plan for Phase 3 distribution (was Phase 2)
 - **What:** Set up Apple Developer account, establish code signing + notarization pipeline, configure hardened runtime profile, and document the release flow for macOS distribution of the Tauri-based OpenScope Monitor.
-- **Why:** macOS won't let users run unsigned or un-notarized binaries outside dev. ScreenCaptureKit entitlements specifically require signed + notarized builds with hardened runtime. Phase 2 cannot ship to users without this infrastructure. Surfaced by CEO review adversarial subagent.
-- **Pros:** Unblocks Phase 2 distribution. Windows equivalent (Authenticode signing) becomes Phase 3 concern.
+- **Why:** macOS won't let users run unsigned or un-notarized binaries outside dev. ScreenCaptureKit entitlements specifically require signed + notarized builds with hardened runtime. Monitor app cannot ship to users without this infrastructure. Surfaced by CEO review adversarial subagent.
+- **Pros:** Unblocks monitor-app distribution. Windows equivalent (Authenticode signing) becomes later concern.
 - **Cons:** ~$99/yr Apple Developer fee. Notarization pipeline adds CI complexity. First-time setup is non-trivial (~1 day).
-- **Context:** Surfaced by /plan-ceo-review adversarial review on 2026-04-19. Apple Developer account registration takes 24-48 hrs for individual, longer for company. Tauri has documented macOS signing/notarization paths — follow tauri.app guides.
-- **Priority:** P2 (Phase 2 blocker, not Phase 1)
-- **Depends on:** Phase 1 shipping + decision to proceed with Phase 2 monitor app
+- **Context:** Originally Phase 2 blocker 2026-04-19. Moved to Phase 3 on 2026-04-20 after Phase 2 pivoted to rendering parity. Monitor app is now Phase 3. Apple Developer account registration takes 24-48 hrs for individual. Tauri has documented macOS signing/notarization paths.
+- **Priority:** P2 (Phase 3 blocker)
+- **Depends on:** Phase 2 rendering parity shipping + decision to proceed with monitor app (see strategic-thesis TODO above)
