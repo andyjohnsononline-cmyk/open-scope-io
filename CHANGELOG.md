@@ -4,6 +4,17 @@ All notable changes to OpenScope will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.1.2.1] - 2026-04-20
+
+### Fixed
+
+- **Harness scrubber loads variants again.** `apps/harness/src/main.ts` had `VARIANT_DIR_BASE` set to `/resolve/2_april-6-2026-stills and scopes`, but the Vite middleware in `apps/harness/vite.config.ts` already maps `/resolve/` → that subdirectory. Every `spec.json` fetch returned 404 because the path got duplicated. Fixed to `/resolve` so the scrubber loads the 3 variant fixtures cleanly on `pnpm dev:harness`.
+
+### Added
+
+- **Regression test** (`apps/harness/src/url-paths.regression-001.test.ts`). Reads `main.ts` as source text and pins `VARIANT_DIR_BASE` to `/resolve` so the double-prefix bug can't come back silently.
+- **Phase 2 TODOs rebased.** Monitor-vs-embedded strategic thesis and Apple code-signing plan moved to post-Phase-2 (Phase 3) after the Phase 2 pivot to rendering parity. New TODOs added for browser WebGPU test infrastructure (Phase 3 blocker for CPU⇔GPU CI gate) and graticule module extraction (optional post-parity refactor).
+
 ## [0.1.2.0] - 2026-03-29
 
 ### Added
