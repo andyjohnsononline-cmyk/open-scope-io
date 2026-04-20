@@ -82,6 +82,33 @@ These TODOs were surfaced during the `connect-into-resolve` CEO plan review. The
 - **Priority:** P3
 - **Depends on:** Phase 2 rendering parity shipped
 
+### Self-hosted macOS runner for WebGPU CI perf gating
+- **What:** Stand up a self-hosted GitHub Actions runner on a mac-mini (or similar) for WebGPU-gated perf regression CI. Tight threshold (e.g., 5-10%) becomes viable once VM jitter is gone.
+- **Why:** GitHub ubuntu-latest runners have no WebGPU driver and ±30-50% perf variance. Phase 1 CI gates CPU-only at warn-only 30% and tracks WebGPU numbers manually per run. That approach doesn't scale past a handful of contributors.
+- **Pros:** Real WebGPU regression gate. Tighter thresholds. Representative hardware.
+- **Cons:** $20-30/mo cloud mac-mini or donated hardware. Runner security posture (GitHub self-hosted on public repo needs careful scope).
+- **Context:** Raised by plan-eng-review outside voice on 2026-04-19. Phase 3 concern (monitor-app reliability), not blocking Phase 2 parity. Re-dated 2026-04-20 after Phase 2 pivot to rendering parity moved monitor-app work to Phase 3.
+- **Priority:** P2
+- **Depends on:** Phase 2 parity shipping + decision to proceed with Phase 3 monitor app
+
+### harness-core package split (logic vs UI) for Phase 3 reuse
+- **What:** Extract scrubber state machine, frame-loading logic, and diff computation from `apps/harness/src/` into a new `packages/harness-core/` that the Phase 3 Tauri monitor can consume headless. UI chrome stays in `apps/harness/`.
+- **Why:** `apps/harness/` today uses `@openscope/renderer`'s WebGL2 display path. A Phase 3 Tauri+wgpu monitor has a different display layer (Rust wgpu surface). If logic and UI are mixed, Phase 3 rewrites both; with the split, only UI is rewritten.
+- **Pros:** Cleaner Phase 3 transition, logic tested once.
+- **Cons:** One more package in the workspace. Premature if the post-Phase-2 strategic checkpoint flips to embedded-engine thesis (monitor-vs-engine TODO still parked).
+- **Context:** Raised by plan-eng-review outside voice 2026-04-19 as the "apps/harness Phase 3 trap." Defer until after Phase 2 parity lands and the monitor-vs-engine thesis is confirmed at the post-Phase-2 strategic checkpoint. Re-dated 2026-04-20 after Phase 2 pivot.
+- **Priority:** P2
+- **Depends on:** Phase 2 parity shipped + monitor-vs-engine strategic decision resolved
+
+### Expand Playwright E2E coverage when harness becomes user-facing
+- **What:** Add E2E tests for keyboard nav (←/→, Q/W/E/R/T), scope-toggle interactions, empty-state rendering, WebGPU-refused fallback path. Today the harness ships with smoke test only.
+- **Why:** Today's harness is a dev/curation tool — smoke test is right-sized. The Phase 3 monitor app is user-facing and needs interaction regression gates.
+- **Pros:** Catches keyboard nav + scope toggle regressions before they hit users.
+- **Cons:** Playwright suite maintenance overhead. Test-flake risk.
+- **Context:** Decided during /plan-eng-review 2026-04-19 — smoke-only harness is intentional for the current dev-tool stage. Revisit at Phase 3 monitor-app kickoff. Re-dated 2026-04-20 after Phase 2 pivot.
+- **Priority:** P2
+- **Depends on:** Phase 3 monitor app scope confirmed
+
 ### Code signing + notarization plan for Phase 3 distribution (was Phase 2)
 - **What:** Set up Apple Developer account, establish code signing + notarization pipeline, configure hardened runtime profile, and document the release flow for macOS distribution of the Tauri-based OpenScope Monitor.
 - **Why:** macOS won't let users run unsigned or un-notarized binaries outside dev. ScreenCaptureKit entitlements specifically require signed + notarized builds with hardened runtime. Monitor app cannot ship to users without this infrastructure. Surfaced by CEO review adversarial subagent.
